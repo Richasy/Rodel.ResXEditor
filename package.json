@@ -2,7 +2,7 @@
   "name": "rodel-resxeditor",
   "displayName": "Rodel.ResXEditor",
   "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
-  "version": "0.1.12",
+  "version": "0.0.1",
   "publisher": "Richasy",
   "license": "MIT",
   "repository": {
@@ -35,7 +35,7 @@
     "test:host": "node scripts/test-host.mjs",
     "test:ui": "node scripts/test-ui.mjs",
     "vscode:prepublish": "npm run check && npm run build",
-    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.12.vsix --allow-missing-repository",
+    "package": "node scripts/package.mjs",
     "test:designer": "node scripts/test-designer.mjs",
     "test:copilot:live": "node scripts/test-copilot-live.mjs"
   },
@@ -220,8 +220,28 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.25.0",
+    "jszip": "^3.10.2",
     "playwright": "^1.56.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
+  },
+  "icon": "assets/icon.png",
+  "keywords": [
+    "resw",
+    "resx",
+    "resources",
+    "localization",
+    "i18n",
+    "copilot",
+    "xml",
+    "excel"
+  ],
+  "galleryBanner": {
+    "color": "#0F172A",
+    "theme": "dark"
+  },
+  "homepage": "https://github.com/Richasy/Rodel.ResXEditor",
+  "bugs": {
+    "url": "https://github.com/Richasy/Rodel.ResXEditor/issues"
   }
 }

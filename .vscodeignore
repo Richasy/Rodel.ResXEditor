@@ -15,3 +15,8 @@ package-lock.json
 docs/**
 *.log
 dist/*.map
+# Publishable screenshots and usage documentation.
+!docs/images/*.png
+!docs/USAGE.zh-CN.md
+!docs/PUBLISHING.md
+assets/icon-original.png
