@@ -12,7 +12,7 @@ const helper = await readFile(helperMarker, 'utf8').catch(() => path.join(root, 
 await mkdir(workspace, { recursive: true });
 await cp('samples/Copilot/Strings', path.join(workspace, 'Strings'), { recursive: true });
 await mkdir(path.join(workspace, '.vscode'), { recursive: true });
-await writeFile(path.join(workspace, '.vscode', 'settings.json'), JSON.stringify({ 'rodelResx.defaultLanguage': 'zh-CN', 'rodelResx.translationBatchSize': 20, 'rodelResx.translationLimit': 100 }));
+await writeFile(path.join(workspace, '.vscode', 'settings.json'), JSON.stringify({ 'rodelResx.defaultLanguage': 'zh-CN', 'rodelResx.translationBatchSize': 20 }));
 await mkdir(helper, { recursive: true });
 await writeFile(helperMarker, helper);
 await build({ entryPoints: ['test/live/copilot.ts'], bundle: true, platform: 'node', format: 'cjs', external: ['vscode'], outfile: path.join(helper, 'test.cjs') });

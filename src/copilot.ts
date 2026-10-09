@@ -11,7 +11,6 @@ export async function translate(items: LanguageDocument[], sourceLanguage: strin
     const targets = selection ? availableTargets.filter(t => selection.targetLanguages.includes(t.label)) : await vscode.window.showQuickPick(availableTargets, { canPickMany: true, title: 'Copilot: target languages (existing translations are preserved)' });
     if (!targets?.length) { return; }
     const config = vscode.workspace.getConfiguration('rodelResx', source.document.uri);
-    const limit = config.get<number>('translationLimit', 100);
     const batchSize = config.get<number>('translationBatchSize', 20);
     const glossary = config.get<Record<string, string>>('glossary', {});
     const sourceVersion = source.document.version;
@@ -25,7 +24,6 @@ export async function translate(items: LanguageDocument[], sourceLanguage: strin
             return !existing?.readonly && !existing?.value.trim();
         }).map(entry => ({ id: `${index}:${entry.key}`, key: entry.key, value: entry.value, comment: entry.comment, targetLanguage: target.item.language, index, exists: resource.entries.some(t => t.key === entry.key) }));
     });
-    if (tasks.length > limit) { throw new Error(`${tasks.length} resource-language translations exceed the configured limit ${limit}. Select fewer keys or languages.`); }
     if (!tasks.length) { vscode.window.showInformationMessage('No missing translations in this scope.'); return []; }
     const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
     if (!models.length) { throw new Error('No Copilot model is available. Enable GitHub Copilot, sign in and check your subscription. Resource editing remains available.'); }
