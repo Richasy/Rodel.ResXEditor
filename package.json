@@ -1,0 +1,219 @@
+{
+  "name": "rodel-resxeditor",
+  "displayName": "Rodel.ResXEditor",
+  "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
+  "version": "0.1.0",
+  "publisher": "Richasy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Richasy/Rodel.ResXEditor.git"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCustomEditor:rodel.resourceEditor"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:host": "node scripts/test-host.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
+    "vscode:prepublish": "npm run check && npm run build",
+    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.0.vsix --allow-missing-repository",
+    "test:designer": "node scripts/test-designer.mjs"
+  },
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "rodel.resourceEditor",
+        "displayName": "Rodel Resource Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.resw"
+          },
+          {
+            "filenamePattern": "*.resx"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "rodel.open",
+        "title": "Open Resource Editor",
+        "category": "Rodel",
+        "icon": "$(table)"
+      },
+      {
+        "command": "rodel.openText",
+        "title": "Open Resource XML",
+        "category": "Rodel",
+        "icon": "$(code)"
+      },
+      {
+        "command": "rodel.create",
+        "title": "Add Language Resource",
+        "category": "Rodel",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "rodel.translate",
+        "title": "Translate Resources with Copilot",
+        "category": "Rodel",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "rodel.export",
+        "title": "Export Resources to Excel",
+        "category": "Rodel",
+        "icon": "$(export)"
+      },
+      {
+        "command": "rodel.import",
+        "title": "Import Resources from Excel",
+        "category": "Rodel",
+        "icon": "$(import)"
+      },
+      {
+        "command": "rodel.nesting",
+        "title": "Enable Resource File Nesting",
+        "category": "Rodel"
+      },
+      {
+        "command": "rodel.designer",
+        "title": "Generate ResX Designer",
+        "category": "Rodel"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "rodel.open",
+          "when": "resourceExtname == .resw || resourceExtname == .resx",
+          "group": "navigation"
+        },
+        {
+          "command": "rodel.create",
+          "when": "explorerResourceIsFolder || resourceExtname == .csproj || resourceExtname == .resw || resourceExtname == .resx",
+          "group": "rodel"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "rodel.openText",
+          "when": "activeCustomEditorId == rodel.resourceEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "rodel.translate",
+          "when": "activeCustomEditorId == rodel.resourceEditor",
+          "group": "navigation"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "rodel.create",
+          "group": "file"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Rodel Resource Editor",
+      "properties": {
+        "rodelResx.defaultLanguage": {
+          "type": "string",
+          "default": "",
+          "description": "Explicit source/default language. Empty does not imply en-US or create an English file.",
+          "scope": "resource"
+        },
+        "rodelResx.projectAdapter": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "none",
+            "sprout"
+          ],
+          "default": "auto",
+          "description": "Read SproutDefaultLanguage from the nearest project; never changes csproj automatically.",
+          "scope": "resource"
+        },
+        "rodelResx.showComments": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource"
+        },
+        "rodelResx.translationLimit": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum translation requests per user action.",
+          "scope": "resource"
+        },
+        "rodelResx.glossary": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Terms and preferred translations supplied to Copilot.",
+          "scope": "resource"
+        },
+        "rodelResx.generateDesigner": {
+          "type": "boolean",
+          "default": false,
+          "description": "Generate a string-only .resx Designer.cs on explicit command. Never generates .resw accessors.",
+          "scope": "resource"
+        },
+        "rodelResx.designerNamespace": {
+          "type": "string",
+          "default": "Resources",
+          "scope": "resource"
+        },
+        "rodelResx.designerBaseName": {
+          "type": "string",
+          "default": "",
+          "description": "Required exact assembly ResourceManager base name, for example MyApp.Resources.",
+          "scope": "resource"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "saxes": "^6.0.0"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.95.0",
+    "@vscode/codicons": "^0.0.36",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.56.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

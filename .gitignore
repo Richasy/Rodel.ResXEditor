@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vscode-test/
+test-results/
+*.vsix
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/rodel-resxeditor-0.1.0.vsix
+*.log
+.DS_Store

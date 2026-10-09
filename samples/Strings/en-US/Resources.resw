@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Welcome" xml:space="preserve"><value>Welcome, {name}!</value></data>
+  <data name="Count" xml:space="preserve"><value /></data>
+  <data name="Multiline" xml:space="preserve"><value>Line one
+Line two</value></data>
+</root>

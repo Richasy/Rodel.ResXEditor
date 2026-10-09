@@ -1,0 +1,14 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+const root = path.join(process.cwd(), '.vscode-test', 'designer');
+await mkdir(root, { recursive: true });
+await build({ entryPoints: ['src/core/designer.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: path.join(root, 'generator.cjs') });
+const { generateDesigner } = createRequire(import.meta.url)(path.join(root, 'generator.cjs'));
+const code = generateDesigner('<root><data name="class"><value>Hello</value></data></root>', 'Test.namespace', 'Strings', 'Test.Strings');
+await writeFile(path.join(root, 'Strings.Designer.cs'), code);
+await writeFile(path.join(root, 'Test.csproj'), '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup></Project>');
+execFileSync('dotnet', ['build', path.join(root, 'Test.csproj'), '--nologo'], { stdio: 'inherit' });
+console.log('PASS: generated Designer compiles with nullable and warnings as errors.');

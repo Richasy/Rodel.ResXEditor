@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- This is an independent test sample, not an IT Home resource. -->
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Welcome" xml:space="preserve">
+    <value>欢迎，{name}！</value>
+    <comment>首页欢迎语，保留用户名占位符。</comment>
+  </data>
+  <data name="Count" xml:space="preserve"><value>共 {0:N0} 条新闻</value></data>
+  <data name="Multiline" xml:space="preserve"><value>第一行
+第二行</value></data>
+  <data name="Link" xml:space="preserve"><value>&lt;b&gt;查看详情&lt;/b&gt;</value></data>
+</root>
