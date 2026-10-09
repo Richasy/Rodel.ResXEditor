@@ -20,3 +20,4 @@ artifacts/*
 
 !artifacts/rodel-resxeditor-0.1.10.vsix
 !artifacts/rodel-resxeditor-0.1.11.vsix
+!artifacts/rodel-resxeditor-0.1.12.vsix

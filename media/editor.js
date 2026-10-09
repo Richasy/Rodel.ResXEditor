@@ -164,7 +164,7 @@
         const style = getComputedStyle(input);
         const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
         const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
-        const limit = Math.ceil(parseFloat(style.lineHeight) * 12 + padding + border);
+        const limit = Math.ceil(parseFloat(style.lineHeight) * (input.classList.contains('preview-editor') ? 8 : 12) + padding + border);
         const previousScroll = input.scrollTop;
         input.classList.remove('is-scrollable');
         input.style.height = 'auto';
@@ -185,7 +185,7 @@
     let sizingFrame;
     function refreshSizes() {
         cancelAnimationFrame(sizingFrame);
-        sizingFrame = requestAnimationFrame(() => { for (const input of table.querySelectorAll('textarea')) sizeInput(input); });
+        sizingFrame = requestAnimationFrame(() => { for (const input of app.querySelectorAll('.grid-scroll textarea,.preview-editor')) if (input.getClientRects().length) sizeInput(input); });
     }
     // VS Code updates theme/font variables without necessarily changing column widths.
     const appearance = new MutationObserver(refreshSizes);
@@ -342,7 +342,7 @@
         if (!attention) { const complete = element('div', 'all-complete', 'No missing translations'); complete.prepend(icon('check-all')); sidebar.append(complete); }
     }
     let review;
-    function closePreview() { review?.language.dispose(); closePopup?.(); document.querySelector('.preview')?.remove(); previewOpen = false; review = undefined; }
+    function closePreview() { if (review) for (const entry of review.known.values()) sizing.unobserve(entry.input); review?.language.dispose(); closePopup?.(); document.querySelector('.preview')?.remove(); previewOpen = false; review = undefined; }
     function preview(rows, running = false, cancelled = false, translation = false) {
         if (!review) {
             closePreview(); closeMenu(); previewOpen = true;
@@ -359,13 +359,17 @@
             const language = combo('Filter preview language', () => refreshReview());
             filters.append(language.element, query);
             const count = element('span', 'muted'); count.setAttribute('aria-live', 'polite'); filters.append(count);
-            const visibleSelection = button('Select visible', 'check-all', () => { for (const entry of known.values()) if (!entry.tr.hidden) { chosen.add(entry.row.id); entry.checkbox.checked = true; } refreshReview(); });
-            const visibleDeselection = button('Deselect visible', 'clear-all', () => { for (const entry of known.values()) if (!entry.tr.hidden) { chosen.delete(entry.row.id); entry.checkbox.checked = false; } refreshReview(); });
-            filters.append(visibleSelection, visibleDeselection); pane.append(filters);
+            const visibleToggle = button('Deselect visible', 'clear-all', () => {
+                const visible = [...known.values()].filter(entry => !entry.tr.hidden);
+                const select = !visible.every(entry => chosen.has(entry.row.id));
+                for (const entry of visible) { select ? chosen.add(entry.row.id) : chosen.delete(entry.row.id); entry.checkbox.checked = select; }
+                refreshReview();
+            });
+            filters.append(visibleToggle); pane.append(filters);
             const status = element('p', 'preview-status'); status.setAttribute('role', 'alert'); status.hidden = true; pane.append(status);
             const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); (translation ? ['Key / language / field', 'Source / comment', 'Current', 'Proposed (editable)'] : ['Key / language / field', 'Current', 'Proposed (editable)']).forEach(t => header.append(element('th', '', t))); grid.append(header); body.append(grid); pane.append(body); app.append(pane);
             toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true;
-            review = { title, chosen, known, edits, apply, discard, cancel, grid, query, language, count, status, running, translation, languages: '' };
+            review = { title, chosen, known, edits, apply, discard, cancel, grid, query, language, count, status, visibleToggle, running, translation, languages: '' };
             query.addEventListener('input', refreshReview);
             (running ? cancel : query).focus();
             pane.addEventListener('keydown', event => {
@@ -381,12 +385,12 @@
             const key = element('td', '', row.key + ' · ' + row.language + ' · ' + row.field);
             const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', 'Apply ' + row.key + ', ' + row.language + ', ' + row.field);
             checkbox.addEventListener('change', () => { checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id); refreshReview(); }); key.prepend(checkbox);
-            const after = element('td', 'after'); const input = element('textarea', 'preview-editor'); input.value = row.after; input.rows = 3; input.setAttribute('aria-label', 'Proposed ' + row.key + ', ' + row.language + ', ' + row.field); input.spellcheck = false;
+            const after = element('td', 'after'); const input = element('textarea', 'preview-editor'); input.value = row.after; input.rows = 1; input.setAttribute('aria-label', 'Proposed ' + row.key + ', ' + row.language + ', ' + row.field); input.spellcheck = false;
             const validation = element('div', 'preview-validation'); validation.id = 'preview-validation-' + (++nextTooltipId); validation.hidden = true; input.setAttribute('aria-describedby', validation.id);
             input.addEventListener('input', () => { edits.set(row.id, input.value); refreshReview(); }); input.addEventListener('blur', refreshReview); after.append(input, validation);
             tr.append(key);
             if (translation) { const context = element('td', 'preview-source', row.sourceValue ?? ''); if (row.sourceComment) context.append(element('div', 'muted', row.sourceComment)); tr.append(context); }
-            tr.append(element('td', 'before', row.before), after); grid.append(tr); known.set(row.id, { row, tr, checkbox, input, validation });
+            tr.append(element('td', 'before', row.before), after); grid.append(tr); known.set(row.id, { row, tr, checkbox, input, validation }); sizing.observe(input);
         });
         const languages = [...new Set([...known.values()].map(entry => entry.row.language))].sort();
         const signature = JSON.stringify(languages);
@@ -398,18 +402,22 @@
     }
     function refreshReview() {
         if (!review) return;
-        const { known, chosen, query, language, count, apply, discard, status } = review;
-        const search = query.value.trim().toLocaleLowerCase(); let visible = 0; let invalid = 0;
+        const { known, chosen, query, language, count, apply, discard, status, visibleToggle } = review;
+        const search = query.value.trim().toLocaleLowerCase(); let visible = 0; let visibleSelected = 0; let invalid = 0;
         status.hidden = true;
         for (const entry of known.values()) {
             const { row, tr, input, validation } = entry;
             tr.hidden = document.activeElement !== input && ((language.value !== 'all' && language.value !== row.language) || ![row.key, row.language, row.sourceValue ?? '', row.sourceComment ?? '', row.before, input.value].some(value => String(value).toLocaleLowerCase().includes(search)));
-            if (!tr.hidden) visible++;
+            if (!tr.hidden) { visible++; if (chosen.has(row.id)) visibleSelected++; sizeInput(input); }
             let error = '';
             try { globalThis.rodelValidatePreview(row.after, input.value, review.translation); } catch (reason) { error = String(reason.message || reason); }
             input.setAttribute('aria-invalid', String(!!error)); validation.textContent = error; validation.hidden = !error;
             if (error && chosen.has(row.id)) invalid++;
         }
+        const allVisibleSelected = visible > 0 && visibleSelected === visible;
+        const toggleLabel = allVisibleSelected ? 'Deselect visible' : 'Select visible';
+        visibleToggle.replaceChildren(icon(allVisibleSelected ? 'clear-all' : 'check-all'), document.createTextNode(toggleLabel));
+        visibleToggle.title = toggleLabel; visibleToggle.setAttribute('aria-label', toggleLabel); visibleToggle.setAttribute('aria-pressed', String(allVisibleSelected)); visibleToggle.disabled = visible === 0;
         count.textContent = visible + '/' + known.size + ' shown · ' + chosen.size + ' selected';
         apply.disabled = review.running || invalid > 0 || chosen.size === 0; discard.disabled = review.running;
         if (invalid) { status.textContent = invalid + ' selected changes need correction. Filtered-out changes are included; fix or uncheck them before applying.'; status.hidden = false; }

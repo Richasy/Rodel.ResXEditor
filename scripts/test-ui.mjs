@@ -179,6 +179,12 @@ await page.getByRole('option', { name: 'fr', exact: true }).click();
 assert.equal(await page.locator('.preview tr:not([hidden]) textarea').count(), 1);
 await page.getByRole('button', { name: 'Deselect visible', exact: true }).click();
 assert.equal(await page.getByRole('checkbox', { name: 'Apply Greeting, fr, value' }).isChecked(), false);
+assert.equal(await page.getByRole('button', { name: /^(?:De)?select visible$/i }).count(), 1);
+assert.equal(await page.getByRole('button', { name: 'Select visible', exact: true }).getAttribute('aria-pressed'), 'false');
+await page.getByRole('button', { name: 'Select visible', exact: true }).click();
+assert.equal(await page.getByRole('checkbox', { name: 'Apply Greeting, fr, value' }).isChecked(), true);
+await page.getByRole('button', { name: 'Deselect visible', exact: true }).click();
+
 await page.getByRole('combobox', { name: 'Filter preview language' }).click();
 await page.getByRole('option', { name: 'All languages Default', exact: true }).click();
 await page.getByRole('searchbox', { name: 'Search preview', exact: true }).fill('Good day');
@@ -197,6 +203,24 @@ const editedMessage = await page.evaluate(() => window.sent.at(-1));
 assert.deepEqual(editedMessage.selection, ['editable:en', 'editable:second']);
 assert.equal(editedMessage.edits['editable:en'], 'Hi {name}\nGood day');
 await ack();
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
+
+// Compact review editors grow with content and scroll only after the eight-line cap.
+const compactRows = [{ id: 'compact:short', key: 'Short', language: 'en-US', field: 'value', before: '', after: 'Save' }, { id: 'compact:long', key: 'Long', language: 'en-US', field: 'value', before: '', after: Array.from({ length: 40 }, (_, i) => 'Line ' + i).join('\n') }];
+await page.evaluate(rows => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', rows } })), compactRows);
+const shortPreview = page.getByRole('textbox', { name: 'Proposed Short, en-US, value', exact: true });
+const longPreview = page.getByRole('textbox', { name: 'Proposed Long, en-US, value', exact: true });
+assert.ok(await shortPreview.evaluate(el => el.closest('tr').getBoundingClientRect().height) <= 52, 'single-line preview has a compact row');
+assert.equal(await shortPreview.evaluate(el => getComputedStyle(el).overflowY), 'hidden');
+assert.ok(await longPreview.evaluate(el => { const style = getComputedStyle(el); return el.clientHeight <= Math.ceil(parseFloat(style.lineHeight) * 8 + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)); }), 'large preview is capped at eight lines');
+assert.equal(await longPreview.evaluate(el => getComputedStyle(el).overflowY), 'auto');
+await longPreview.press('Control+End');
+assert.ok(await longPreview.evaluate(el => el.scrollTop) > 0);
+await longPreview.fill('Shortened');
+assert.ok(await longPreview.evaluate(el => el.clientHeight) < 40);
+assert.equal(await longPreview.evaluate(el => getComputedStyle(el).overflowY), 'hidden');
+await page.getByRole('searchbox', { name: 'Search preview', exact: true }).fill('No matches');
+assert.equal(await page.getByRole('button', { name: 'Select visible', exact: true }).isDisabled(), true);
 await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
 
 // Use a realistic independent resource sample for the design previews.
