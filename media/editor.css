@@ -29,6 +29,37 @@ button.icon-button .codicon { font-size: 16px; }
 input.search { width: 100%; min-width: 0; padding: 6px 0; border: 0; outline: 0; color: var(--vscode-input-foreground); background: transparent; font-size: 12px; }
 input::placeholder, textarea::placeholder { color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground)); opacity: .7; }
 select { min-width: 0; height: 29px; padding: 4px 7px; background: var(--vscode-dropdown-background); color: var(--vscode-dropdown-foreground); border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border)); border-radius: 3px; font-size: 12px; }
+.combo, .language-picker { position: relative; flex-shrink: 0; }
+.combo-trigger { width: 170px; min-height: 29px; padding: 4px 8px; justify-content: space-between; gap: 12px; font-size: 12px; border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border)); border-radius: 4px; color: var(--vscode-dropdown-foreground, var(--vscode-editor-foreground)); background: var(--vscode-dropdown-background, var(--vscode-editor-background)); }
+.combo-trigger:hover { background: var(--vscode-dropdown-background, var(--vscode-editor-background)); }
+.combo-trigger[aria-expanded="true"] { border-color: var(--vscode-focusBorder); }
+.combo-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-trigger .codicon { font-size: 16px; color: var(--vscode-descriptionForeground); }
+.source-picker .combo-trigger { width: 105px; }
+.combo-popup, .language-popup { position: absolute; top: calc(100% + 3px); left: 0; z-index: 25; width: 280px; border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border)); border-radius: 4px; background: var(--vscode-dropdown-listBackground, var(--vscode-dropdown-background, var(--vscode-editorWidget-background, var(--vscode-editor-background)))); color: var(--vscode-dropdown-foreground, var(--vscode-editor-foreground)); box-shadow: 0 4px 12px var(--vscode-widget-shadow); overflow: hidden; }
+.source-picker .combo-popup { left: auto; right: 0; width: 240px; }
+.combo-options { max-height: 240px; overflow-y: auto; padding: 2px; }
+.combo-option { display: flex; width: 100%; justify-content: space-between; text-align: left; border: 0; border-radius: 3px; padding: 6px 9px; font-size: 12px; }
+.combo-option[aria-selected="true"] { background: var(--vscode-list-inactiveSelectionBackground); color: var(--vscode-list-inactiveSelectionForeground, inherit); }
+.combo-option:hover, .combo-option:focus { background: var(--vscode-list-focusBackground, var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground))); color: var(--vscode-list-focusForeground, var(--vscode-list-activeSelectionForeground, inherit)); outline: 1px solid var(--vscode-list-focusOutline, var(--vscode-focusBorder)); outline-offset: -1px; }
+.option-note { margin-left: auto; padding-left: 12px; font-size: 11px; color: var(--vscode-descriptionForeground); }
+.combo-description { border-top: 1px solid var(--vscode-panel-border); padding: 8px 10px; font-size: 12px; line-height: 1.5; color: var(--vscode-descriptionForeground); }
+.language-picker > button { font-size: 12px; border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border)); background: var(--vscode-dropdown-background, transparent); }
+.language-popup { left: auto; right: 0; width: 310px; padding: 8px; }
+.language-search { width: 100%; border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 2px; padding: 6px 8px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); font-size: 12px; }
+.language-options { max-height: 280px; overflow: auto; margin: 6px -3px; }
+.language-option { display: flex; align-items: center; gap: 9px; padding: 7px; cursor: pointer; border-radius: 3px; }
+.language-option:hover { background: var(--vscode-list-hoverBackground); }
+.language-option:focus-within { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+.language-option input { appearance: none; flex-shrink: 0; display: grid; place-content: center; width: 14px; height: 14px; margin: 0; border: 1px solid var(--vscode-checkbox-border, var(--vscode-panel-border)); border-radius: 2px; background: var(--vscode-checkbox-background, var(--vscode-input-background)); color: var(--vscode-checkbox-foreground, var(--vscode-editor-foreground)); }
+.language-option input:checked::before { content: ''; width: 7px; height: 4px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-1px) rotate(-45deg); }
+.language-option input:disabled { opacity: .55; }
+.language-option:has(input:disabled) { cursor: default; }
+.language-option-title { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.language-option-title small { font-size: 11px; color: var(--vscode-descriptionForeground); }
+.language-actions { display: flex; gap: 4px; border-top: 1px solid var(--vscode-panel-border); padding-top: 6px; }
+.language-actions button { font-size: 12px; }
+.language-note { margin: 6px 2px 2px; color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.5; }
 .spacer { flex: 1; }
 .control-label { font-size: 12px; color: var(--vscode-descriptionForeground); }
 .selectionbar { display: flex; align-items: center; gap: 5px; padding: 5px 20px; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); }

@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.6` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.7` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.6.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.7.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.6.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.7.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -105,3 +105,5 @@ Copilot 翻译按目标语言批量处理，默认每批最多 20 条（`rodelRe
 存量资源的自然语言语法检查列为后续低优先级功能：按语言批量检查拼写、语法及用词一致性，保留占位符与原有语义，返回可逐条接受的修订建议。它与当前 XML 结构校验分别处理。
 
 真实 Copilot 联调已完成：gpt-5.4-mini 使用 2 个批次翻译 22 项，零保护校验失败，人工译文、源文及撤销/重做验证通过。记录见 `docs/COPILOT-LIVE-RESULT.json`。显式自动选择的联调方式为 `npm run test:copilot:live -- --auto`，仅固定 en-US 并优先选择轻量模型，仍遵循官方授权。
+
+语言显示筛选：点击工具栏 Visible languages，可按语言代码或名称搜索并多选。Source 始终勾选、不可取消，切换 Source 后自动显示新源语言。首次打开默认展示源语言和最多两种目标语言，显示选择保存在当前资源编辑器状态中；支持 Show all 和 Source only。侧栏继续统计所有语言，点击隐藏语言的缺失项会自动显示并定位。筛选不改变增删改资源的范围或 Copilot 目标语言选择。资源筛选和 Source 下拉框采用设置页风格的主题化列表，支持方向键、Home/End、Enter、Escape 与字母定位。

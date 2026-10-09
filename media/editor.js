@@ -16,6 +16,8 @@
     let rendering = false;
     let menuOpen = false;
     let nextTooltipId = 0;
+    let visibleLanguages = Array.isArray(saved.visibleLanguages) ? new Set(saved.visibleLanguages) : undefined;
+    let closePopup;
     const queue = [];
     const app = document.getElementById('app');
     const element = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -38,7 +40,39 @@
         btn.addEventListener('click', () => typeof action === 'function' ? action() : send(action, typeof data === 'function' ? data() : data));
         return btn;
     }
-    function persist() { vscode.setState({ filter, search, descending }); }
+    function persist() { vscode.setState({ filter, search, descending, visibleLanguages: visibleLanguages ? [...visibleLanguages] : undefined }); }
+    function combo(label, onChange) {
+        const host = element('div', 'combo');
+        const trigger = element('button', 'combo-trigger'); trigger.setAttribute('role', 'combobox'); trigger.setAttribute('aria-label', label); trigger.setAttribute('aria-haspopup', 'listbox'); trigger.setAttribute('aria-expanded', 'false');
+        const text = element('span', 'combo-text'); trigger.append(text, icon('chevron-down'));
+        const popup = element('div', 'combo-popup hidden');
+        const list = element('div', 'combo-options'); list.id = `combo-${++nextTooltipId}`; list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', label); trigger.setAttribute('aria-controls', list.id);
+        const description = element('div', 'combo-description'); popup.append(list, description); host.append(trigger, popup);
+        let options = []; let value = ''; let open = false;
+        const close = () => { open = false; popup.classList.add('hidden'); trigger.setAttribute('aria-expanded', 'false'); };
+        const select = next => { value = next; text.textContent = options.find(option => option.value === value)?.label ?? value; };
+        function show() {
+            closePopup?.(); closePopup = close; open = true; popup.classList.remove('hidden'); trigger.setAttribute('aria-expanded', 'true');
+            list.replaceChildren();
+            for (const option of options) {
+                const row = element('button', 'combo-option', option.label); row.setAttribute('role', 'option'); row.setAttribute('aria-selected', String(option.value === value)); row.dataset.value = option.value;
+                if (option.default) row.append(element('span', 'option-note', 'Default'));
+                row.addEventListener('focus', () => { description.textContent = option.description || ''; description.classList.toggle('hidden', !option.description); });
+                row.addEventListener('click', () => { select(option.value); close(); trigger.focus(); onChange(option.value); }); list.append(row);
+            }
+            (list.querySelector('[aria-selected="true"]') ?? list.firstElementChild)?.focus();
+        }
+        trigger.addEventListener('click', () => { if (open) close(); else show(); });
+        trigger.addEventListener('keydown', event => { if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); show(); if (event.key === 'Home') list.firstElementChild?.focus(); if (event.key === 'End') list.lastElementChild?.focus(); } if (event.key === 'Escape') close(); });
+        list.addEventListener('keydown', event => {
+            const rows = [...list.children]; const current = rows.indexOf(document.activeElement);
+            if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); rows[event.key === 'Home' ? 0 : event.key === 'End' ? rows.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length]?.focus(); }
+            if (event.key === 'Escape' || event.key === 'Tab') { close(); trigger.focus(); if (event.key === 'Escape') event.preventDefault(); }
+            if (event.key.length === 1 && /\S/.test(event.key)) { const row = rows.slice(current + 1).concat(rows.slice(0, current + 1)).find(row => row.textContent.toLowerCase().startsWith(event.key.toLowerCase())); if (row) { event.preventDefault(); row.focus(); } }
+        });
+        document.addEventListener('pointerdown', event => { if (!host.contains(event.target)) close(); });
+        return { element: host, trigger, setOptions(next, selected) { if (open) trigger.focus(); options = next; select(selected); close(); }, get value() { return value; }, set value(next) { select(next); } };
+    }
     const toolbar = element('header', 'editor-header');
     const identity = element('div', 'identity');
     const fileIcon = element('div', 'file-icon'); fileIcon.append(icon('symbol-string'));
@@ -61,19 +95,56 @@
     const commentToggle = menuAction('Comments', 'comment', () => send('comments', { value: String(!showComments) }));
     menuAction('Open XML', 'code', 'text');
     function closeMenu() { menuOpen = false; menu.classList.add('hidden'); menuButton.setAttribute('aria-expanded', 'false'); }
-    function toggleMenu() { menuOpen = !menuOpen; menu.classList.toggle('hidden', !menuOpen); menuButton.setAttribute('aria-expanded', String(menuOpen)); if (menuOpen) menu.querySelector('button').focus(); }
+    function toggleMenu() { closePopup?.(); menuOpen = !menuOpen; menu.classList.toggle('hidden', !menuOpen); menuButton.setAttribute('aria-expanded', String(menuOpen)); if (menuOpen) menu.querySelector('button').focus(); }
     menu.addEventListener('keydown', event => { const controls = [...menu.querySelectorAll('button')]; const index = controls.indexOf(document.activeElement); if (event.key === 'Escape') { closeMenu(); menuButton.focus(); } if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); controls[(index + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length].focus(); } if (event.key === 'Tab') closeMenu(); });
     document.addEventListener('pointerdown', event => { if (!menu.contains(event.target) && !menuButton.contains(event.target)) closeMenu(); });
     const filterbar = element('div', 'filterbar');
     const searchWrap = element('div', 'search-wrap'); searchWrap.append(icon('search'));
     const searchBox = element('input', 'search'); searchBox.type = 'search'; searchBox.placeholder = 'Search key, value or comment'; searchBox.setAttribute('aria-label', searchBox.placeholder); searchBox.value = search;
     searchBox.addEventListener('input', () => { search = searchBox.value; persist(); renderGrid(); }); searchWrap.append(searchBox); filterbar.append(searchWrap);
-    const filterBox = element('select'); filterBox.setAttribute('aria-label', 'Filter resources');
-    for (const [value, text] of [['all', 'All resources'], ['missing', 'Missing translations'], ['same', 'Same as source'], ['readonly', 'Read-only resources']]) { const opt = element('option', '', text); opt.value = value; filterBox.append(opt); }
-    filterBox.value = filter; filterBox.addEventListener('change', () => { filter = filterBox.value; persist(); renderGrid(); }); filterbar.append(filterBox);
+    const filterBox = combo('Filter resources', value => { filter = value; persist(); renderGrid(); });
+    filterBox.setOptions([
+        { value: 'all', label: 'All resources', default: true, description: 'Show all resource entries.' },
+        { value: 'missing', label: 'Missing translations', description: 'Show entries missing a translation in any target language.' },
+        { value: 'same', label: 'Same as source', description: 'Show target values identical to the source language.' },
+        { value: 'readonly', label: 'Read-only resources', description: 'Show non-text or unsupported resource types.' }
+    ], filter); filterbar.append(filterBox.element);
     const sortButton = button('Sort', 'sort-precedence', () => { descending = !descending; persist(); renderGrid(); }); sortButton.classList.add('icon-button'); filterbar.append(sortButton);
     const filterSpacer = element('div', 'spacer'); filterbar.append(filterSpacer);
-    const sourceBox = element('select'); sourceBox.setAttribute('aria-label', 'Source language'); sourceBox.addEventListener('change', () => send('source', { source: sourceBox.value })); filterbar.append(element('span', 'control-label', 'Source'), sourceBox);
+    const sourceBox = combo('Source language', value => send('source', { source: value })); sourceBox.element.classList.add('source-picker'); filterbar.append(element('span', 'control-label', 'Source'), sourceBox.element);
+    const languageHost = element('div', 'language-picker');
+    const languageButton = button('Visible languages', 'filter', () => toggleLanguages()); languageButton.setAttribute('aria-expanded', 'false'); languageButton.setAttribute('aria-haspopup', 'dialog');
+    const languagePopup = element('section', 'language-popup hidden'); languagePopup.setAttribute('role', 'dialog'); languagePopup.setAttribute('aria-label', 'Visible languages');
+    const languageSearch = element('input', 'language-search'); languageSearch.type = 'search'; languageSearch.placeholder = 'Search languages'; languageSearch.setAttribute('aria-label', 'Search languages');
+    const languageList = element('div', 'language-options');
+    const languageActions = element('div', 'language-actions'); languageActions.append(button('Show all', 'check-all', () => { visibleLanguages = new Set(items.map(i => i.language)); updateLanguages(); }), button('Source only', 'clear-all', () => { visibleLanguages = new Set([source]); updateLanguages(); }));
+    languagePopup.append(languageSearch, languageList, languageActions, element('p', 'language-note', 'Source is always visible. Hidden languages still count toward completion.')); languageHost.append(languageButton, languagePopup); filterbar.append(languageHost);
+    let languagesOpen = false;
+    function closeLanguages() { languagesOpen = false; languagePopup.classList.add('hidden'); languageButton.setAttribute('aria-expanded', 'false'); }
+    function toggleLanguages() { if (languagesOpen) { closeLanguages(); return; } closePopup?.(); closeMenu(); closePopup = closeLanguages; languagesOpen = true; languagePopup.classList.remove('hidden'); languageButton.setAttribute('aria-expanded', 'true'); languageSearch.value = ''; renderLanguageOptions(); languageSearch.focus(); }
+    function displayedLanguages() { return items.filter(item => item.language === source || visibleLanguages?.has(item.language)); }
+    function updateLanguages() { visibleLanguages.add(source); persist(); renderGrid(); renderLanguageOptions(); }
+    function renderLanguageOptions() {
+        const focusedLanguage = document.activeElement?.dataset.language;
+        const scrollTop = languageList.scrollTop;
+        languageList.replaceChildren();
+        for (const item of items.filter(i => `${i.language} ${languageName(i.language)}`.toLowerCase().includes(languageSearch.value.toLowerCase()))) {
+            const row = element('label', 'language-option'); const check = element('input'); check.type = 'checkbox'; check.checked = item.language === source || visibleLanguages?.has(item.language); check.disabled = item.language === source; check.dataset.language = item.language; check.setAttribute('aria-label', `Show ${item.language}`);
+            check.addEventListener('change', () => { check.checked ? visibleLanguages.add(item.language) : visibleLanguages.delete(item.language); updateLanguages(); });
+            const title = element('span', 'language-option-title'); title.append(element('span', '', item.language), element('small', '', languageName(item.language))); row.append(check, title); if (item.language === source) row.append(element('span', 'option-note', 'Source')); languageList.append(row);
+        }
+        if (!languageList.children.length) languageList.append(element('p', 'muted', 'No matching languages'));
+        if (focusedLanguage) [...languageList.querySelectorAll('input')].find(input => input.dataset.language === focusedLanguage)?.focus();
+        languageList.scrollTop = scrollTop;
+    }
+    languageSearch.addEventListener('input', renderLanguageOptions);
+    languagePopup.addEventListener('keydown', event => {
+        const controls = [languageSearch, ...languagePopup.querySelectorAll('input:not(:disabled):not(.language-search), button')]; const index = controls.indexOf(document.activeElement);
+        if (event.key === 'Escape') { event.preventDefault(); closeLanguages(); languageButton.focus(); }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); controls[(index + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length]?.focus(); }
+        if (event.key === 'Tab') { event.preventDefault(); controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length]?.focus(); }
+    });
+    document.addEventListener('pointerdown', event => { if (!languageHost.contains(event.target)) closeLanguages(); });
     const sidebarToggle = button('Toggle language sidebar', 'layout-sidebar-right', () => { layout.classList.toggle('sidebar-hidden'); sidebarToggle.setAttribute('aria-pressed', String(!layout.classList.contains('sidebar-hidden'))); }); sidebarToggle.classList.add('icon-button'); sidebarToggle.setAttribute('aria-pressed', 'true'); filterbar.append(sidebarToggle);
     const rowbar = element('div', 'selectionbar hidden');
     rowbar.append(button('Rename', 'edit', () => singleAction('rename')), button('Copy', 'copy', () => singleAction('copy')), button('Delete', 'trash', () => { if (!selected.size) error('Select resources to delete.'); else send('deleteMany', { keys: [...selected] }); }));
@@ -148,6 +219,8 @@
     }
     function renderGrid() {
         rendering = true;
+        const columns = displayedLanguages();
+        languageButton.setAttribute('aria-label', `Visible languages (${columns.length}/${items.length})`);
         selected = new Set([...selected].filter(key => keys().includes(key)));
         // Preserve focused, unsent drafts when another view or language changes.
         const focused = document.activeElement;
@@ -156,7 +229,7 @@
         table.replaceChildren();
         const head = element('thead'); const headings = element('tr');
         const keyHeader = element('th', 'key'); keyHeader.scope = 'col'; keyHeader.append(element('span', '', 'Resource key'), element('span', 'column-meta', `${keys().length} entries`)); headings.append(keyHeader);
-        items.forEach(i => { const th = element('th', i.language === source ? 'source-column' : ''); th.scope = 'col'; const top = element('div', 'column-title'); top.append(element('span', '', languageName(i.language)), element('span', `role-label${i.language === source ? ' source-label' : ''}`, i.language === source ? 'Source' : 'Translation')); th.append(top, element('div', 'column-meta', `${i.language}${i.dirty ? ' · Unsaved' : ''}`)); headings.append(th); });
+        columns.forEach(i => { const th = element('th', i.language === source ? 'source-column' : ''); th.scope = 'col'; const top = element('div', 'column-title'); top.append(element('span', '', languageName(i.language)), element('span', `role-label${i.language === source ? ' source-label' : ''}`, i.language === source ? 'Source' : 'Translation')); th.append(top, element('div', 'column-meta', `${i.language}${i.dirty ? ' · Unsaved' : ''}`)); headings.append(th); });
         if (showComments) { const th = element('th', 'comment-heading', 'Comment'); th.append(element('div', 'column-meta', 'Source context')); headings.append(th); }
         head.append(headings); table.append(head);
         const body = element('tbody');
@@ -167,19 +240,19 @@
             const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(key); checkbox.setAttribute('aria-label', `Select ${key}`); checkbox.addEventListener('change', () => { checkbox.checked ? selected.add(key) : selected.delete(key); row.classList.toggle('selected', checkbox.checked); updateSelection(); });
             const number = element('span', 'row-number', String(index + 1)); number.setAttribute('aria-hidden', 'true');
             const keyButton = element('button', 'key-name', key); keyButton.title = key; keyButton.addEventListener('click', () => { selected = new Set([key]); renderGrid(); }); inner.append(checkbox, number, keyButton); cell.append(inner); row.append(cell);
-            for (const item of items) row.append(editCell(key, item, 'value'));
+            for (const item of columns) row.append(editCell(key, item, 'value'));
             if (showComments) { const item = items.find(i => i.language === source); if (item) row.append(editCell(key, item, 'comment')); }
             body.append(row);
         }
         table.append(body);
-        if (!displayed.length) { const empty = element('tr'); const cell = element('td', 'empty-state', search ? 'No matching resources' : 'No resources in this view'); cell.colSpan = items.length + 1 + Number(showComments); empty.append(cell); body.append(empty); }
+        if (!displayed.length) { const empty = element('tr'); const cell = element('td', 'empty-state', search ? 'No matching resources' : 'No resources in this view'); cell.colSpan = columns.length + 1 + Number(showComments); empty.append(cell); body.append(empty); }
         if (draft) {
             const restored = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === draft.id);
             if (restored) { restored.value = draft.value; restored.dataset.baseline = draft.baseline; restored.dataset.version = draft.version; restored.focus(); restored.setSelectionRange(draft.start, draft.end); }
         }
         for (const input of table.querySelectorAll('textarea')) { sizeInput(input); sizing.observe(input); }
         if (draft) { const restored = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === draft.id); if (restored) restored.scrollTop = draft.scrollTop; }
-        status.replaceChildren(element('span', '', `${displayed.length} resources · ${items.length} languages`), element('span', 'status-hint', 'Tab / Enter to navigate · Shift + Enter for a new line'), element('span', 'save-state', items.some(i => i.dirty) ? `${items.filter(i => i.dirty).length} unsaved` : 'All changes saved'));
+        status.replaceChildren(element('span', '', `${displayed.length} resources · ${columns.length}/${items.length} languages visible`), element('span', 'status-hint', 'Tab / Enter to navigate · Shift + Enter for a new line'), element('span', 'save-state', items.some(i => i.dirty) ? `${items.filter(i => i.dirty).length} unsaved` : 'All changes saved'));
         saveButton.disabled = !items.some(i => i.dirty);
         updateSelection();
         renderSidebar();
@@ -235,6 +308,7 @@
         return cell;
     }
     function locate(key, language) {
+        visibleLanguages.add(language);
         search = ''; filter = 'all'; searchBox.value = ''; filterBox.value = 'all'; persist(); renderGrid();
         const item = items.find(i => i.language === language);
         const cell = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === JSON.stringify([item?.uri, key, 'value']));
@@ -293,9 +367,13 @@
         const msg = event.data;
         if (msg.type === 'state') {
             source = msg.source; items = [...msg.items].sort((a, b) => a.language === source ? -1 : b.language === source ? 1 : a.language.localeCompare(b.language)); showComments = msg.showComments;
+            if (!visibleLanguages) visibleLanguages = new Set(items.slice(0, 3).map(i => i.language));
+            visibleLanguages.add(source);
             fileTitle.textContent = msg.name || 'Resources';
             fileSubtitle.textContent = `${items.length} languages · ${keys().length} resources`;
-            sourceBox.replaceChildren(); items.forEach(i => { const option = element('option', '', i.language); option.value = i.language; sourceBox.append(option); }); sourceBox.value = source;
+            sourceBox.setOptions(items.map(i => ({ value: i.language, label: i.language, description: languageName(i.language) })), source);
+            if (languagesOpen) renderLanguageOptions();
+            persist();
             commentToggle.setAttribute('aria-pressed', String(showComments));
             const errors = items.filter(i => i.error || i.warning); if (errors.length) error(errors.map(i => `${i.language}: ${i.error || i.warning}`).join(' · '));
             renderGrid();

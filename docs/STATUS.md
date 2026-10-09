@@ -79,3 +79,9 @@
 - 纯图标按钮去掉隐藏文字遗留的 7px gap，所有工具栏图标水平居中。
 - UI 测试使用 2.5 倍像素密度，额外覆盖 125%/150%/175% 缩放和 17.25px 字号；短文本无滚动条、超长文本仍可滚动、图标中心误差不超过 0.5px。
 - 真实模型输出中 Article.Read/Article.Reading 分别是 Read/Reading，Article.Bookmark/Article.Bookmarks 分别是 Bookmark/Bookmarks，与 Comment 的动词/栏目名上下文一致。人工译文保留，源文件不变，撤销/重做通过。样本结果只写入独立测试副本。
+
+## 0.1.7 下拉框与语言显示筛选
+
+- 设置页风格的资源/Source 下拉框：主题变量、选项高亮、默认项标记、选项说明、方向键/Home/End/Enter/Escape/字母定位与焦点恢复。
+- 搜索、多选语言显示列表，源语言始终显示且禁止取消；切换 Source 后更新锁定项。提供显示全部/仅源语言，编辑器重开恢复选择。
+- 十六种语言 UI 测试覆盖显示列、滚动、隐藏语言统计、缺失点击自动显示、搜索、源语言切换、键盘操作与翻译范围不受显示筛选影响。四主题截图在 test-results/language-picker-*.png 和 settings-combo-*.png。
