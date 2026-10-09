@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.4` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.6` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.4.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.6.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.4.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.6.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -97,3 +97,11 @@ F5 启动独立 Extension Development Host，默认打开 `samples`。`test:host
 - [VS Code UX Guidelines](https://code.visualstudio.com/api/ux-guidelines/overview)
 
 长文本试用样本位于 `samples/LongText/Strings`，包含中文/英文段落、显式换行和空行、30 行文本、长 URL、长 Key 与长注释。单元格按实际折行自动增高，最多显示 12 行，剩余内容可在单元格内滚动；短文本块在行内垂直居中。
+
+Copilot 翻译按目标语言批量处理，默认每批最多 20 条（`rodelResx.translationBatchSize`，范围 2–50），并按模型输入预算进一步拆分。`translationLimit` 限制每次资源 × 目标语言的数量，并非请求数。每批包含 Key、Source、Comment 和术语表，返回后验证 ID 与占位符，再进入差异预览；已有人工翻译保持不变。不自动以单条请求重试失败批次。
+
+手动真实联调：`npm run test:copilot:live` 会在开发窗口复用本机 Copilot 登录，需点击“开始 Copilot 联调”、选择语言/模型并按官方流程授权。只复制 `samples/Copilot` 到独立测试目录，25 个键中有 3 个人工翻译、22 个缺失项，预计两个批次。不会修改样本源文件或真实项目资源。测试报告写入 `.vscode-test/copilot-live-*/report.json`，此命令不属于默认测试。
+
+存量资源的自然语言语法检查列为后续低优先级功能：按语言批量检查拼写、语法及用词一致性，保留占位符与原有语义，返回可逐条接受的修订建议。它与当前 XML 结构校验分别处理。
+
+真实 Copilot 联调已完成：gpt-5.4-mini 使用 2 个批次翻译 22 项，零保护校验失败，人工译文、源文及撤销/重做验证通过。记录见 `docs/COPILOT-LIVE-RESULT.json`。显式自动选择的联调方式为 `npm run test:copilot:live -- --auto`，仅固定 en-US 并优先选择轻量模型，仍遵循官方授权。

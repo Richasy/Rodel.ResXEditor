@@ -90,10 +90,16 @@
     function sizeInput(input) {
         const style = getComputedStyle(input);
         const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-        const limit = Math.ceil(parseFloat(style.lineHeight) * 12 + padding);
+        const border = parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+        const limit = Math.ceil(parseFloat(style.lineHeight) * 12 + padding + border);
         const previousScroll = input.scrollTop;
+        input.classList.remove('is-scrollable');
         input.style.height = 'auto';
-        input.style.height = `${Math.min(input.scrollHeight, limit)}px`;
+        // scrollHeight rounds to CSS pixels. A one-pixel allowance prevents a
+        // fractional line box at Windows zoom/DPI from clipping the final line.
+        const needed = input.scrollHeight + border + 1;
+        input.style.height = `${Math.min(needed, limit)}px`;
+        input.classList.toggle('is-scrollable', needed > limit);
         input.scrollTop = previousScroll;
     }
     const inputSizes = new WeakMap();

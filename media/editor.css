@@ -10,7 +10,7 @@ button:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-li
 button:disabled { opacity: .4; cursor: default; }
 button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
 button.primary:hover { background: var(--vscode-button-hoverBackground, var(--vscode-button-background)); }
-button.icon-button { width: 30px; height: 30px; padding: 6px; font-size: 0; }
+button.icon-button { width: 30px; height: 30px; padding: 6px; font-size: 0; gap: 0; }
 button.icon-button .codicon { font-size: 16px; }
 :focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
 .editor-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 20px 16px; border-bottom: 1px solid var(--vscode-panel-border); }
@@ -60,7 +60,8 @@ textarea:focus { background: var(--vscode-input-background); outline: 1px solid 
 tr:hover td { background: var(--vscode-list-hoverBackground); }
 tr.selected td { background: var(--vscode-list-inactiveSelectionBackground); color: var(--vscode-list-inactiveSelectionForeground, var(--vscode-editor-foreground)); }
 .cell-editor { position: relative; display: flex; align-items: center; min-height: 44px; }
-.cell-editor textarea { overflow-wrap: anywhere; overflow-y: auto; }
+.cell-editor textarea { overflow-wrap: anywhere; overflow: hidden; }
+.cell-editor textarea.is-scrollable { overflow-y: auto; }
 .has-indicator textarea { padding-right: 36px; }
 .cell-indicator { position: absolute; top: 13px; right: 10px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 3px; color: var(--vscode-descriptionForeground); opacity: .55; cursor: help; }
 .cell-indicator .codicon { font-size: 12px; }

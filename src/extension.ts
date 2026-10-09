@@ -5,6 +5,7 @@ import { canonicalLanguage, identify, resourcePath } from './core/discovery';
 import { newResource } from './core/xml';
 import { generateDesigner } from './core/designer';
 import { projectLanguage } from './documents';
+import { translate } from './copilot';
 
 export function activate(context: vscode.ExtensionContext) {
     const provider = new ResourceEditor(context);
@@ -67,5 +68,5 @@ export function activate(context: vscode.ExtensionContext) {
         await vscode.workspace.fs.writeFile(target, Buffer.from(code));
         await vscode.window.showTextDocument(target);
     });
-    return { documents: provider.documents, editorDiagnostics: () => provider.diagnostics() };
+    return { documents: provider.documents, editorDiagnostics: () => provider.diagnostics(), translateResources: translate };
 }

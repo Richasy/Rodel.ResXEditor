@@ -1,0 +1,114 @@
+{
+  "status": "passed",
+  "model": "gpt-5.4-mini",
+  "requestCount": 2,
+  "translatedCount": 22,
+  "failures": [],
+  "sourceUnchanged": true,
+  "humanTranslationsPreserved": true,
+  "undoRedo": true,
+  "outputFile": "Independent disposable test workspace: Strings/en-US/Resources.resw",
+  "translations": [
+    {
+      "key": "Action.Cancel",
+      "value": "Cancel (human)"
+    },
+    {
+      "key": "Action.Confirm",
+      "value": "Confirm (human)"
+    },
+    {
+      "key": "Action.Save",
+      "value": "Save (human)"
+    },
+    {
+      "key": "Action.Close",
+      "value": "Close"
+    },
+    {
+      "key": "Article.Read",
+      "value": "Read"
+    },
+    {
+      "key": "Article.Reading",
+      "value": "Reading"
+    },
+    {
+      "key": "Article.Bookmark",
+      "value": "Bookmark"
+    },
+    {
+      "key": "Article.Bookmarks",
+      "value": "Bookmarks"
+    },
+    {
+      "key": "Article.ReadLater",
+      "value": "Read later"
+    },
+    {
+      "key": "News.Empty",
+      "value": "No new content for now"
+    },
+    {
+      "key": "News.Loading",
+      "value": "Loading news…"
+    },
+    {
+      "key": "News.Count",
+      "value": "Total {0:N0} news items"
+    },
+    {
+      "key": "Welcome",
+      "value": "Welcome, {name}!"
+    },
+    {
+      "key": "Reader.Progress",
+      "value": "Read {0:P0}"
+    },
+    {
+      "key": "Reader.FontSize",
+      "value": "Font size"
+    },
+    {
+      "key": "Reader.Theme",
+      "value": "Reading theme"
+    },
+    {
+      "key": "Search.Hint",
+      "value": "Search news, topics, and authors"
+    },
+    {
+      "key": "Sync.Failed",
+      "value": "Sync failed, please try again later"
+    },
+    {
+      "key": "Offline.Hint",
+      "value": "Offline. Cached content is shown."
+    },
+    {
+      "key": "Update.Available",
+      "value": "New version available"
+    },
+    {
+      "key": "Settings.Language",
+      "value": "Interface language"
+    },
+    {
+      "key": "Settings.Restart",
+      "value": "Restart the app after changes"
+    },
+    {
+      "key": "Format.Html",
+      "value": "<b>Important</b>: Please keep your reading progress."
+    },
+    {
+      "key": "Format.Multiline",
+      "value": "Syncing…\nPlease wait."
+    },
+    {
+      "key": "Download.Progress",
+      "value": "Downloaded %s, %d seconds remaining"
+    }
+  ],
+  "testedAt": "2026-10-09 Asia/Hong_Kong"
+}

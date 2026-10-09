@@ -2,7 +2,7 @@
   "name": "rodel-resxeditor",
   "displayName": "Rodel.ResXEditor",
   "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "publisher": "Richasy",
   "license": "MIT",
   "repository": {
@@ -35,8 +35,9 @@
     "test:host": "node scripts/test-host.mjs",
     "test:ui": "node scripts/test-ui.mjs",
     "vscode:prepublish": "npm run check && npm run build",
-    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.4.vsix --allow-missing-repository",
-    "test:designer": "node scripts/test-designer.mjs"
+    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.6.vsix --allow-missing-repository",
+    "test:designer": "node scripts/test-designer.mjs",
+    "test:copilot:live": "node scripts/test-copilot-live.mjs"
   },
   "contributes": {
     "customEditors": [
@@ -164,7 +165,15 @@
           "default": 100,
           "minimum": 1,
           "maximum": 1000,
-          "description": "Maximum translation requests per user action.",
+          "description": "Maximum resource-language translations per user action (not model request count).",
+          "scope": "resource"
+        },
+        "rodelResx.translationBatchSize": {
+          "type": "number",
+          "default": 20,
+          "minimum": 2,
+          "maximum": 50,
+          "description": "Maximum resources in one Copilot request per target language. Batches also respect the selected model input budget.",
           "scope": "resource"
         },
         "rodelResx.glossary": {

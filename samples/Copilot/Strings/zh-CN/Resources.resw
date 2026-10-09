@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Action.Cancel" xml:space="preserve">
+    <value>取消</value>
+    <comment>按钮：取消当前操作</comment>
+  </data>
+  <data name="Action.Confirm" xml:space="preserve">
+    <value>确定</value>
+    <comment>按钮：确认当前对话框</comment>
+  </data>
+  <data name="Action.Save" xml:space="preserve">
+    <value>保存</value>
+    <comment>按钮：保存阅读设置</comment>
+  </data>
+  <data name="Action.Close" xml:space="preserve">
+    <value>关闭</value>
+    <comment>关闭弹出的对话框，不是关机</comment>
+  </data>
+  <data name="Article.Read" xml:space="preserve">
+    <value>阅读</value>
+    <comment>动词：打开文章并开始阅读</comment>
+  </data>
+  <data name="Article.Reading" xml:space="preserve">
+    <value>阅读</value>
+    <comment>名词：设置页里的阅读选项分类</comment>
+  </data>
+  <data name="Article.Bookmark" xml:space="preserve">
+    <value>收藏</value>
+    <comment>动词：将文章添加到收藏夹</comment>
+  </data>
+  <data name="Article.Bookmarks" xml:space="preserve">
+    <value>收藏</value>
+    <comment>名词：导航页，显示已收藏文章</comment>
+  </data>
+  <data name="Article.ReadLater" xml:space="preserve">
+    <value>稍后阅读</value>
+    <comment>文章操作按钮，英文常用 Read later</comment>
+  </data>
+  <data name="News.Empty" xml:space="preserve">
+    <value>暂时没有新内容</value>
+    <comment>新闻列表空状态，简短友好的提示</comment>
+  </data>
+  <data name="News.Loading" xml:space="preserve">
+    <value>正在加载新闻…</value>
+    <comment>列表加载状态，保留省略号</comment>
+  </data>
+  <data name="News.Count" xml:space="preserve">
+    <value>共 {0:N0} 条新闻</value>
+    <comment>保留复合格式占位符</comment>
+  </data>
+  <data name="Welcome" xml:space="preserve">
+    <value>欢迎，{name}！</value>
+    <comment>首页问候，保留命名占位符</comment>
+  </data>
+  <data name="Reader.Progress" xml:space="preserve">
+    <value>已读 {0:P0}</value>
+    <comment>阅读进度，保留百分比格式</comment>
+  </data>
+  <data name="Reader.FontSize" xml:space="preserve">
+    <value>字号</value>
+    <comment>阅读设置，文本字体大小，不是字体名称</comment>
+  </data>
+  <data name="Reader.Theme" xml:space="preserve">
+    <value>阅读主题</value>
+    <comment>阅读器外观的设置标签</comment>
+  </data>
+  <data name="Search.Hint" xml:space="preserve">
+    <value>搜索新闻、话题与作者</value>
+    <comment>搜索框占位文字</comment>
+  </data>
+  <data name="Sync.Failed" xml:space="preserve">
+    <value>同步失败，请稍后重试</value>
+    <comment>出错提示，友好简洁</comment>
+  </data>
+  <data name="Offline.Hint" xml:space="preserve">
+    <value>当前离线，已显示缓存内容</value>
+    <comment>无需用户立即操作的离线提示</comment>
+  </data>
+  <data name="Update.Available" xml:space="preserve">
+    <value>发现新版本</value>
+    <comment>应用更新提示</comment>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>界面语言</value>
+    <comment>设置项名称</comment>
+  </data>
+  <data name="Settings.Restart" xml:space="preserve">
+    <value>修改后需重启应用</value>
+    <comment>设置项下方的辅助说明</comment>
+  </data>
+  <data name="Format.Html" xml:space="preserve">
+    <value>&lt;b&gt;重要提示&lt;/b&gt;：请保留阅读进度。</value>
+    <comment>保留 b 标签和标记顺序</comment>
+  </data>
+  <data name="Format.Multiline" xml:space="preserve">
+    <value>正在同步…
+请稍候。</value>
+    <comment>两行状态文本，严格保留换行</comment>
+  </data>
+  <data name="Download.Progress" xml:space="preserve">
+    <value>已下载 %s，剩余 %d 秒</value>
+    <comment>保留 printf 格式符</comment>
+  </data>
+</root>

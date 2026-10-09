@@ -12,7 +12,7 @@ const font = (await readFile('dist/codicon.ttf')).toString('base64');
 const codicons = (await readFile('dist/codicon.css', 'utf8')).replace(/url\("\.\/codicon.ttf[^\"]*"\)/, `url("data:font/ttf;base64,${font}")`);
 await mkdir('test-results', { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.TEST_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2.5 });
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
 const entries = [{ key: 'Welcome', value: '欢迎，{name}！', comment: '首页欢迎语', readonly: false }, { key: 'Count', value: '共 {0:N0} 条新闻', comment: '', readonly: false }, { key: 'Multiline', value: '第一行\n第二行', comment: '', readonly: false }, { key: 'Logo', value: 'AA==', comment: '', readonly: true, reason: 'Unsupported resource type: Bitmap' }];
@@ -35,6 +35,13 @@ async function checkCentered() {
     for (const { label, offset } of offsets) assert.ok(offset <= 1, `${label}: single-line text center differs by ${offset}px`);
 }
 await checkCentered();
+const iconOffsets = await page.locator('button.icon-button').evaluateAll(buttons => buttons.map(button => {
+    const rect = button.getBoundingClientRect(); const icon = button.querySelector('.codicon').getBoundingClientRect();
+    return { label: button.getAttribute('aria-label'), offset: Math.abs(icon.left + icon.width / 2 - rect.left - rect.width / 2) };
+}));
+for (const { label, offset } of iconOffsets) assert.ok(offset <= .5, `${label}: icon horizontally centered, offset ${offset}px`);
+assert.equal(await page.locator('tbody textarea.is-scrollable').count(), 0, 'short, empty and readonly cells never enable scrollbars');
+assert.ok(await page.locator('tbody textarea').evaluateAll(inputs => inputs.every(input => getComputedStyle(input).overflowY === 'hidden')));
 assert.equal(await page.locator('tbody tr').count(), 4);
 assert.equal(await page.locator('td.missing').count(), 1);
 assert.equal(await page.locator('td.same').count(), 1);
@@ -119,6 +126,12 @@ for (const [name, theme] of Object.entries(themes)) {
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), `rgb(${parseInt(theme.background.slice(1,3),16)}, ${parseInt(theme.background.slice(3,5),16)}, ${parseInt(theme.background.slice(5,7),16)})`);
 }
 const longFixture = await Promise.all(['zh-CN', 'en-US'].map(async language => ({ uri: `file:///LongText/Strings/${language}/Resources.resw`, language, version: 1, dirty: false, error: '', entries: parseResource(await readFile(`samples/LongText/Strings/${language}/Resources.resw`, 'utf8')).entries.map(({ key, value, comment, readonly, reason }) => ({ key, value, comment, readonly, reason })) })));
+for (const zoom of [1.25, 1.5, 1.75]) {
+    await page.evaluate(zoom => { document.body.style.zoom = String(zoom); document.documentElement.style.setProperty('--vscode-editor-font-size', '17.25px'); }, zoom);
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('tbody textarea.is-scrollable').count(), 0, `short cells stay scrollbar-free at ${zoom * 100}% zoom and fractional font size`);
+}
+await page.evaluate(() => { document.body.style.zoom = '1'; document.documentElement.style.setProperty('--vscode-editor-font-size', '14px'); });
 await state(longFixture);
 for (const [name, theme] of Object.entries(themes)) {
     await applyTheme(theme);
@@ -129,6 +142,10 @@ for (const [name, theme] of Object.entries(themes)) {
     assert.ok(paragraph.height > 65 && paragraph.scroll <= paragraph.height + 1, 'soft-wrapped paragraph grows to fit');
     const extreme = measurements.find(input => input.label === 'Stress.Extreme, zh-CN, value');
     assert.ok(extreme.scroll > extreme.height * 2, 'extreme text retains scrollable content');
+    assert.ok(await page.locator('tbody textarea').evaluateAll(inputs => inputs.every(input => {
+        if (input.classList.contains('is-scrollable')) return getComputedStyle(input).overflowY === 'auto' && input.scrollHeight > input.clientHeight;
+        return getComputedStyle(input).overflowY === 'hidden' && input.scrollHeight <= input.clientHeight + 1;
+    })), 'only genuinely capped long text enables scrolling');
     await page.locator('.grid-scroll').evaluate(el => { el.scrollTop = 0; });
     await page.screenshot({ path: `test-results/long-text-${name}.png` });
 }
@@ -154,6 +171,7 @@ await state(longFixture);
 assert.equal(await extremeInput.evaluate(el => el.scrollTop), lastLineScroll, 'state update preserves scroll position inside long value');
 await extremeInput.fill('短文本');
 assert.ok(await extremeInput.evaluate(el => el.clientHeight) < 50, 'editing a long value to short text shrinks its editor');
+assert.equal(await extremeInput.evaluate(el => getComputedStyle(el).overflowY), 'hidden', 'shrinking text removes its scrollbar');
 await state(longFixture);
 assert.equal(await extremeInput.inputValue(), '短文本', 'state update keeps edited long-text draft');
 await extremeInput.press('Escape');

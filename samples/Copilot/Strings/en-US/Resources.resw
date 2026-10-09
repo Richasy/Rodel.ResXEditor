@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Action.Cancel" xml:space="preserve">
+    <value>Cancel (human)</value>
+    <comment>Human translation; must be preserved.</comment>
+  </data>
+  <data name="Action.Confirm" xml:space="preserve">
+    <value>Confirm (human)</value>
+    <comment>Human translation; must be preserved.</comment>
+  </data>
+  <data name="Action.Save" xml:space="preserve">
+    <value>Save (human)</value>
+    <comment>Human translation; must be preserved.</comment>
+  </data>
+</root>
