@@ -15,6 +15,7 @@
     let busy = false;
     let rendering = false;
     let menuOpen = false;
+    let nextTooltipId = 0;
     const queue = [];
     const app = document.getElementById('app');
     const element = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -152,11 +153,13 @@
         const isMissing = field === 'value' && missing(key, item) && !groupReadOnly;
         const isSame = field === 'value' && same(key, item);
         const cell = element('td', `${field === 'value' ? 'value' : 'comment'}${isMissing ? ' missing' : isSame ? ' same' : ''}${groupReadOnly ? ' readonly' : ''}${item.language === source ? ' source-column' : ''}`);
+        const editor = element('div', 'cell-editor');
         const input = element('textarea'); input.rows = Math.min(5, Math.max(1, (entry?.[field] || '').split('\n').length)); input.value = entry?.[field] || '';
         input.dataset.cell = JSON.stringify([item.uri, key, field]); input.dataset.baseline = input.value; input.dataset.version = String(item.version);
         input.setAttribute('aria-label', `${key}, ${item.language}, ${field}${isMissing ? ', missing' : isSame ? ', same as source' : ''}`);
         input.readOnly = groupReadOnly || !!item.error; input.title = entry?.reason || (groupReadOnly ? 'This key contains a non-text or unsupported resource in another language.' : '');
-        input.placeholder = isMissing ? 'Add a translation…' : field === 'comment' ? '' : '';
+        input.placeholder = isMissing ? '—' : '';
+        input.addEventListener('input', () => { input.rows = Math.min(5, Math.max(1, input.value.split('\n').length)); });
         input.addEventListener('focus', () => { if (input.value === input.dataset.baseline) input.dataset.version = String(items.find(i => i.uri === item.uri)?.version); });
         input.addEventListener('change', () => {
             if (rendering) return;
@@ -167,6 +170,8 @@
             }
         });
         input.addEventListener('keydown', event => {
+            if (event.altKey && event.key === 'ArrowRight') { const indicator = editor.querySelector('.cell-indicator'); if (indicator) { event.preventDefault(); indicator.focus(); } return; }
+            if (input.readOnly) return;
             if (event.key === 'Tab') {
                 const cells = [...table.querySelectorAll('textarea:not([readonly])')]; const next = cells[cells.indexOf(input) + (event.shiftKey ? -1 : 1)];
                 if (next) { event.preventDefault(); next.focus(); }
@@ -176,9 +181,19 @@
             }
             if (event.key === 'Escape') { input.value = input.dataset.baseline; input.blur(); }
         });
-        cell.append(input);
-        if (groupReadOnly) { const label = element('span', 'cell-state', 'Read-only'); label.prepend(icon('lock')); label.title = input.title; cell.append(label); }
-        else if (isMissing || isSame) { const label = element('span', `cell-state ${isMissing ? 'missing-label' : 'same-label'}`, isMissing ? 'Missing' : 'Same as source'); label.prepend(icon(isMissing ? 'circle-outline' : 'copy')); cell.append(label); }
+        editor.append(input);
+        if (field === 'value' && (groupReadOnly || isMissing || isSame)) {
+            editor.classList.add('has-indicator');
+            const state = groupReadOnly ? 'readonly' : isMissing ? 'missing' : 'same';
+            const description = groupReadOnly ? `Read-only. ${input.title}` : isMissing ? 'Missing translation. Enter a value to complete this resource.' : 'Same as source. Check whether this value needs translation.';
+            const indicator = element('span', `cell-indicator indicator-${state}`); indicator.tabIndex = 0; indicator.setAttribute('role', 'img'); indicator.setAttribute('aria-label', groupReadOnly ? 'Read-only resource' : isMissing ? 'Missing translation' : 'Same as source');
+            indicator.append(icon(groupReadOnly ? 'lock' : isMissing ? 'circle-small-filled' : 'link'));
+            const tooltip = element('div', 'cell-tooltip', description); tooltip.id = `cell-tooltip-${++nextTooltipId}`; tooltip.setAttribute('role', 'tooltip');
+            indicator.setAttribute('aria-describedby', tooltip.id); input.setAttribute('aria-describedby', tooltip.id);
+            indicator.addEventListener('keydown', event => { if (event.key === 'Escape' || (event.altKey && event.key === 'ArrowLeft')) { event.preventDefault(); input.focus(); } });
+            editor.append(indicator, tooltip);
+        }
+        cell.append(editor);
         return cell;
     }
     function locate(key, language) {

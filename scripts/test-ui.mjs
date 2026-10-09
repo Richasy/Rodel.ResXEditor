@@ -22,6 +22,21 @@ await state(); await ack();
 assert.equal(await page.locator('tbody tr').count(), 4);
 assert.equal(await page.locator('td.missing').count(), 1);
 assert.equal(await page.locator('td.same').count(), 1);
+const originalRowHeights = await page.locator('tbody tr').evaluateAll(rows => rows.map(row => row.getBoundingClientRect().height));
+const hiddenStatusStyle = await page.addStyleTag({ content: '.cell-indicator, .cell-tooltip { display: none !important; }' });
+assert.deepEqual(await page.locator('tbody tr').evaluateAll(rows => rows.map(row => row.getBoundingClientRect().height)), originalRowHeights, 'status indicators never contribute to row height');
+await hiddenStatusStyle.evaluate(el => el.remove());
+assert.equal(originalRowHeights[0], originalRowHeights[3], 'missing and normal single-line rows have equal height');
+assert.ok(originalRowHeights[2] > originalRowHeights[0], 'multiline text alone grows the row');
+const missingIndicator = page.getByRole('img', { name: 'Missing translation', exact: true });
+await missingIndicator.hover();
+await page.getByRole('tooltip').filter({ hasText: 'Missing translation.' }).waitFor({ state: 'visible' });
+await page.mouse.move(0, 0);
+const missingInput = page.getByRole('textbox', { name: 'Count, en-US, value, missing', exact: true });
+await missingInput.focus(); await missingInput.press('Alt+ArrowRight');
+assert.equal(await missingIndicator.evaluate(el => el === document.activeElement), true);
+await missingIndicator.press('Escape');
+assert.equal(await missingInput.evaluate(el => el === document.activeElement), true);
 const count = page.getByRole('textbox', { name: 'Count, en-US, value, missing', exact: true });
 await count.fill('Total {0:N0}'); await count.press('Tab');
 assert.equal((await page.evaluate(() => window.sent.at(-1))).action, 'set');
@@ -66,7 +81,7 @@ const demo = [
 ];
 await state(fixture.map((item, index) => ({ ...item, entries: [...item.entries, ...demo.map(([key, value, target, comment]) => ({ key, value: index === 0 ? value : target, comment: index === 0 ? comment : '', readonly: false }))] })));
 await page.getByRole('searchbox').blur();
-await page.setViewportSize({ width: 1440, height: 960 });
+await page.setViewportSize({ width: 1440, height: 760 });
 const themes = {
     dark: { background: '#1f1f1f', foreground: '#cccccc', panel: '#333333', input: '#313131', sidebar: '#181818', focus: '#007fd4', button: '#0078d4', selection: '#37373d' },
     light: { background: '#ffffff', foreground: '#3b3b3b', panel: '#e5e5e5', input: '#ffffff', sidebar: '#f8f8f8', focus: '#0090f1', button: '#005fb8', selection: '#e4e6f1' },

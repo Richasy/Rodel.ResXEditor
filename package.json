@@ -2,7 +2,7 @@
   "name": "rodel-resxeditor",
   "displayName": "Rodel.ResXEditor",
   "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "Richasy",
   "license": "MIT",
   "repository": {
@@ -35,7 +35,7 @@
     "test:host": "node scripts/test-host.mjs",
     "test:ui": "node scripts/test-ui.mjs",
     "vscode:prepublish": "npm run check && npm run build",
-    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.1.vsix --allow-missing-repository",
+    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.2.vsix --allow-missing-repository",
     "test:designer": "node scripts/test-designer.mjs"
   },
   "contributes": {
