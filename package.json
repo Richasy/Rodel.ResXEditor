@@ -2,7 +2,7 @@
   "name": "rodel-resxeditor",
   "displayName": "Rodel.ResXEditor",
   "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "publisher": "Richasy",
   "license": "MIT",
   "repository": {
@@ -35,7 +35,7 @@
     "test:host": "node scripts/test-host.mjs",
     "test:ui": "node scripts/test-ui.mjs",
     "vscode:prepublish": "npm run check && npm run build",
-    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.9.vsix --allow-missing-repository",
+    "package": "vsce package --out artifacts/rodel-resxeditor-0.1.10.vsix --allow-missing-repository",
     "test:designer": "node scripts/test-designer.mjs",
     "test:copilot:live": "node scripts/test-copilot-live.mjs"
   },
@@ -193,6 +193,13 @@
           "default": "",
           "description": "Required exact assembly ResourceManager base name, for example MyApp.Resources.",
           "scope": "resource"
+        },
+        "rodelResx.translationConcurrency": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Maximum simultaneous Copilot translation batch requests."
         }
       }
     }

@@ -340,21 +340,36 @@
         }
         if (!attention) { const complete = element('div', 'all-complete', 'No missing translations'); complete.prepend(icon('check-all')); sidebar.append(complete); }
     }
-    function closePreview() { document.querySelector('.preview')?.remove(); previewOpen = false; }
-    function preview(rows) {
-        closePreview(); previewOpen = true;
-        const pane = element('section', 'preview'); pane.setAttribute('role', 'dialog'); pane.setAttribute('aria-modal', 'true'); pane.setAttribute('aria-label', 'Review resource changes');
-        const bar = element('div', 'toolbar'); bar.append(element('h2', '', `Review ${rows.length} changes`));
-        const chosen = new Set(rows.map(row => row.id));
-        const apply = button('Apply changes', 'check', 'applyPreview', () => ({ selection: [...chosen] })); apply.classList.add('primary');
-        bar.append(apply, button('Discard', 'close', () => { send('cancelPreview'); closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; }));
-        pane.append(bar, element('p', 'muted', 'Existing values shown below will be replaced. Changes remain unsaved and can be undone. New external edits invalidate this preview.'));
-        const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); ['Key / language / field', 'Before', 'After'].forEach(t => header.append(element('th', '', t))); grid.append(header);
-        rows.forEach(row => { const tr = element('tr'); const key = element('td', '', `${row.key} · ${row.language} · ${row.field}`); const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', `Apply ${row.key}, ${row.language}, ${row.field}`); checkbox.addEventListener('change', () => checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id)); key.prepend(checkbox); tr.append(key, element('td', 'before', row.before), element('td', 'after', row.after)); grid.append(tr); }); body.append(grid); pane.append(body); app.append(pane);
-        toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true; apply.focus();
-        pane.addEventListener('keydown', event => {
-            if (event.key === 'Tab') { const btns = [...pane.querySelectorAll('button,input')]; const index = btns.indexOf(document.activeElement); event.preventDefault(); btns[(index + (event.shiftKey ? -1 : 1) + btns.length) % btns.length].focus(); }
+    let review;
+    function closePreview() { document.querySelector('.preview')?.remove(); previewOpen = false; review = undefined; }
+    function preview(rows, running = false, cancelled = false) {
+        if (!review) {
+            closePreview(); previewOpen = true;
+            const pane = element('section', 'preview'); pane.setAttribute('role', 'dialog'); pane.setAttribute('aria-modal', 'true'); pane.setAttribute('aria-label', 'Review resource changes');
+            const bar = element('div', 'toolbar'); const title = element('h2'); title.setAttribute('aria-live', 'polite'); bar.append(title);
+            const chosen = new Set(); const known = new Set();
+            const apply = button('Apply changes', 'check', 'applyPreview', () => ({ selection: [...chosen] })); apply.classList.add('primary');
+            const discard = button('Discard', 'close', () => { send('cancelPreview'); closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; });
+            const cancel = button('Cancel translation', 'debug-stop', () => { vscode.postMessage({ action: 'cancelTranslation' }); cancel.disabled = true; });
+            bar.append(apply, cancel, discard);
+            pane.append(bar, element('p', 'muted', 'Completed batches appear here as they finish. Review and apply to update resource files. External edits invalidate this preview.'));
+            const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); ['Key / language / field', 'Before', 'After'].forEach(t => header.append(element('th', '', t))); grid.append(header); body.append(grid); pane.append(body); app.append(pane);
+            toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true;
+            review = { title, chosen, known, apply, discard, cancel, grid };
+            (running ? cancel : apply).focus();
+            pane.addEventListener('keydown', event => {
+                if (event.key === 'Tab') { const btns = [...pane.querySelectorAll('button,input')].filter(b => !b.disabled && !b.hidden); const index = btns.indexOf(document.activeElement); event.preventDefault(); btns[(index + (event.shiftKey ? -1 : 1) + btns.length) % btns.length]?.focus(); }
+            });
+        }
+        const { title, chosen, known, apply, discard, cancel, grid } = review;
+        rows.forEach(row => {
+            if (known.has(row.id)) return;
+            known.add(row.id); chosen.add(row.id);
+            const tr = element('tr'); const key = element('td', '', row.key + ' · ' + row.language + ' · ' + row.field); const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', 'Apply ' + row.key + ', ' + row.language + ', ' + row.field); checkbox.addEventListener('change', () => checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id)); key.prepend(checkbox); tr.append(key, element('td', 'before', row.before), element('td', 'after', row.after)); grid.append(tr);
         });
+        title.textContent = (running ? 'Translating · ' : cancelled ? 'Cancelled · ' : 'Review ') + rows.length + ' changes';
+        apply.disabled = running; discard.disabled = running; cancel.hidden = !running;
+        if (!running && document.activeElement === cancel) apply.focus();
     }
     document.addEventListener('keydown', event => {
         const modifier = event.ctrlKey || event.metaKey;
@@ -383,7 +398,7 @@
             if (reveal.length) requestAnimationFrame(() => { const row = [...table.querySelectorAll('tbody tr')].find(row => row.dataset.key === reveal[0]); const input = row?.querySelector('td.source-column textarea:not([readonly])'); input?.focus({ preventScroll: true }); row?.scrollIntoView({ block: 'center', inline: 'nearest' }); });
             vscode.postMessage({ action: 'rendered', languageCount: items.length, resourceCount: keys().length });
         } else if (msg.type === 'error') error(msg.message);
-        else if (msg.type === 'preview') preview(msg.rows);
+        else if (msg.type === 'preview') preview(msg.rows, msg.running, msg.cancelled);
         else if (msg.type === 'previewClosed') { closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); }
         else if (msg.type === 'ack') { busy = false; pump(); }
     });

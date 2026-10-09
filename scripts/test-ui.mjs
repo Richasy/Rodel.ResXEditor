@@ -146,6 +146,20 @@ await state();
 await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
 assert.equal(await page.getByRole('complementary').isVisible(), false);
 await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
+// Streaming preview preserves selection and bypasses the busy action queue to cancel.
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', running: true, rows: [{ id: 'stable:a', key: 'First', language: 'en-US', field: 'value', before: '', after: 'First translation' }] } })));
+await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).uncheck();
+assert.equal(await page.getByRole('button', { name: 'Apply changes', exact: true }).isDisabled(), true);
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', running: true, rows: [{ id: 'stable:b', key: 'Second', language: 'fr', field: 'value', before: '', after: 'Second translation' }, { id: 'stable:a', key: 'First', language: 'en-US', field: 'value', before: '', after: 'First translation' }] } })));
+assert.equal(await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).isChecked(), false);
+assert.equal(await page.locator('.preview input').count(), 2);
+await page.getByRole('button', { name: 'Cancel translation', exact: true }).click();
+assert.equal(await page.evaluate(() => window.sent.some(m => m.action === 'cancelTranslation')), true);
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', running: false, cancelled: true, rows: [{ id: 'stable:a', key: 'First', language: 'en-US', field: 'value', before: '', after: 'First translation' }, { id: 'stable:b', key: 'Second', language: 'fr', field: 'value', before: '', after: 'Second translation' }] } })));
+assert.equal(await page.getByRole('button', { name: 'Apply changes', exact: true }).isEnabled(), true);
+assert.equal(await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).isChecked(), false);
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
+
 // Use a realistic independent resource sample for the design previews.
 const demo = [
     ['Loading', '正在加载新闻…', 'Loading news…', '列表加载状态'],

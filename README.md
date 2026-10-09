@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.9` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.10` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.9.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.10.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.9.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.10.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -55,7 +55,7 @@ Project/Resources.fr.resx
 
 点击 Copilot 或运行 **Rodel: Translate Resources with Copilot**。选中一条、几条，或不选择以处理全部缺失项；选目标语言和当前可用的 Copilot 模型。通过官方 `vscode.lm.selectChatModels({ vendor: 'copilot' })` 与 `sendRequest` 调用，授权由 VS Code / Copilot 处理。没有第三方翻译服务或额外 API Key。
 
-请求包含 Key、Comment、源值、源/目标语言与可选术语表。已有非空人工翻译默认跳过。串行请求有可取消进度、输入 Token 检查；取消不应用任何结果，授权/配额错误明确提示。校验 `{0}`、`{name}`、格式符、标记及换行，校验失败的结果不会进入预览。预览逐条选择后才能应用；源文档或目标版本改变后拒绝应用。
+请求包含 Key、Comment、源值、源/目标语言与可选术语表。已有非空人工翻译默认跳过。默认同时处理 3 个批次（translationConcurrency 可设为 1–6），有可取消进度与输入 Token 检查；每批完成后实时追加到差异预览，取消会保留已经通过校验的结果供确认应用，并停止后续批次、通知正在执行的模型请求取消，授权/配额错误明确提示。校验 `{0}`、`{name}`、格式符、标记及换行，校验失败的结果不会进入预览。预览逐条选择后才能应用；源文档或目标版本改变后拒绝应用。
 
 Copilot 未安装、未登录或模型不可用时基础编辑照常可用。模型请求可能计入 Copilot 配额；测试不自动调用真实付费模型。
 

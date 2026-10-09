@@ -16,7 +16,7 @@ export function translationPrompt(context: { key: string; value: string; comment
 }
 
 export interface TranslationTask { id: string; key: string; value: string; comment: string; targetLanguage: string }
-interface BatchOptions { sourceLanguage: string; glossary: Record<string, string>; batchSize: number; maxInputTokens: number }
+interface BatchOptions { sourceLanguage: string; glossary: Record<string, string>; batchSize: number; maxInputTokens: number; concurrency?: number }
 interface BatchModel { countTokens(prompt: string): Promise<number>; request(prompt: string): Promise<string> }
 export class TranslationCancelledError extends Error { constructor() { super('Translation cancelled.'); } }
 export function batchTranslationPrompt(tasks: TranslationTask[], options: Pick<BatchOptions, 'sourceLanguage' | 'glossary'>): string {
@@ -39,7 +39,7 @@ export function parseBatchTranslations(output: string, tasks: TranslationTask[])
     if (seen.size !== expected.size) { throw new Error('Model omitted translation ids. Batch discarded.'); }
     return { values, failures };
 }
-export async function runTranslationBatches(tasks: TranslationTask[], options: BatchOptions, model: BatchModel, cancelled: () => boolean, progress: (completed: number, total: number, message: string) => void) {
+export async function runTranslationBatches(tasks: TranslationTask[], options: BatchOptions, model: BatchModel, cancelled: () => boolean, progress: (completed: number, total: number, message: string) => void, updated?: (values: ReadonlyMap<string, string>) => Promise<void>) {
     const values = new Map<string, string>();
     const failures: string[] = [];
     const batches: TranslationTask[][] = [];
@@ -62,21 +62,37 @@ export async function runTranslationBatches(tasks: TranslationTask[], options: B
     }
     if (batch.length) batches.push(batch);
     let completed = tasks.length - batches.reduce((sum, part) => sum + part.length, 0);
-    for (const [index, part] of batches.entries()) {
-        check();
-        progress(completed, tasks.length, `Batch ${index + 1}/${batches.length} · ${part.length} resources → ${part[0].targetLanguage}`);
-        // Transport/auth/quota failures stop the operation; validation failures
-        // are reported without reissuing paid requests or applying unsafe values.
-        const output = await model.request(prompt(part));
-        check();
-        try {
-            const parsed = parseBatchTranslations(output, part);
-            for (const [id, value] of parsed.values) values.set(id, value);
-            failures.push(...parsed.failures);
-        } catch (error) { failures.push(`Batch ${index + 1} (${part[0].targetLanguage}, ${part.length} resources): ${String(error)}`); }
-        completed += part.length;
-        progress(completed, tasks.length, `Completed ${completed}/${tasks.length} resources`);
-    }
-    check();
-    return { values, failures, requestCount: batches.length };
+    let next = 0;
+    let requestCount = 0;
+    let failure: unknown;
+    let stopped = false;
+    let updates = Promise.resolve();
+    const worker = async () => {
+        while (!cancelled() && !stopped && next < batches.length) {
+            const index = next++;
+            const part = batches[index];
+            progress(completed, tasks.length, `Batch ${index + 1}/${batches.length} · ${part.length} resources → ${part[0].targetLanguage}`);
+            // Transport/auth/quota failures stop the operation; validation failures
+            // are reported without reissuing paid requests or applying unsafe values.
+            let output: string;
+            requestCount++;
+            try { output = await model.request(prompt(part)); }
+            catch (error) { if (!cancelled()) { failure ??= error; stopped = true; } break; }
+            if (cancelled() || stopped) break;
+            try {
+                const parsed = parseBatchTranslations(output, part);
+                for (const [id, value] of parsed.values) values.set(id, value);
+                failures.push(...parsed.failures);
+            } catch (error) { failures.push(`Batch ${index + 1} (${part[0].targetLanguage}, ${part.length} resources): ${String(error)}`); }
+            completed += part.length;
+            progress(completed, tasks.length, `Completed ${completed}/${tasks.length} resources`);
+            const snapshot = new Map(values);
+            updates = updates.then(() => updated?.(snapshot)).catch(error => { failure ??= error; stopped = true; });
+            await updates;
+        }
+    };;
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(6, options.concurrency ?? 1)) }, worker));
+    await updates;
+    if (failure) throw failure;
+    return { values, failures, requestCount, cancelled: cancelled() };
 }

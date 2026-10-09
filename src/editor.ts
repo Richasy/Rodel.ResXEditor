@@ -28,6 +28,8 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
         let disposed = false;
         let generation = 0;
         let runningLongAction = false;
+        let translationCancellation: vscode.CancellationTokenSource | undefined;
+        const rowId = (uri: string, op: Operation) => JSON.stringify([uri, op.key, op.kind === 'set' ? op.field : 'value']);
         let pendingReveal: string[] | undefined;
         const diskBaselines = new Map<string, string>();
         const fingerprint = async (uri: vscode.Uri) => createHash('sha256').update(await vscode.workspace.fs.readFile(uri)).digest('hex');
@@ -53,14 +55,14 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 if (pendingReveal === revealKeys) pendingReveal = undefined;
             } catch (error) { await panel.webview.postMessage({ type: 'error', message: String(error), fatal: true }); }
         };
-        const preview = async (changes: DocumentChange[] | undefined) => {
-            if (!changes?.length) { return; }
+        const preview = async (changes: DocumentChange[] | undefined, running = false, cancelled = false) => {
+            if (!changes?.length || disposed) { return; }
             pending = changes;
             pendingGuards = Object.fromEntries(items.map(i => [i.document.uri.toString(), i.document.version]));
-            await panel.webview.postMessage({ type: 'preview', rows: changes.flatMap((c, changeIndex) => {
+            await panel.webview.postMessage({ type: 'preview', running, cancelled, rows: changes.flatMap(c => {
                 const item = items.find(i => i.document.uri.toString() === c.uri)!;
                 const entries = parseResource(item.document.getText()).entries;
-                return c.operations.map((op, opIndex) => ({ id: `${changeIndex}:${opIndex}`, language: item.language, key: op.key, field: op.kind === 'set' ? op.field : 'value', before: entries.find(e => e.key === op.key)?.[op.kind === 'set' ? op.field : 'value'] ?? '', after: op.kind === 'set' ? op.value : op.kind === 'add' ? op.value ?? '' : '', existing: !!entries.find(e => e.key === op.key)?.value }));
+                return c.operations.map(op => ({ id: rowId(c.uri, op), language: item.language, key: op.key, field: op.kind === 'set' ? op.field : 'value', before: entries.find(e => e.key === op.key)?.[op.kind === 'set' ? op.field : 'value'] ?? '', after: op.kind === 'set' ? op.value : op.kind === 'add' ? op.value ?? '' : '', existing: !!entries.find(e => e.key === op.key)?.value }));
             }) });
         };
         const run = async (message: Message) => {
@@ -78,10 +80,11 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
             }
             if (action === 'cancelPreview') { pending = undefined; return; }
             if (action === 'applyPreview') {
+                if (runningLongAction) throw new Error('Stop translation or wait for completion before applying results.');
                 if (pending) {
                     if (items.some(i => i.document.version !== pendingGuards[i.document.uri.toString()])) { throw new Error('Resources changed after preview. Discard it and generate a new preview.'); }
                     const selected = message.selection;
-                    const changes = pending.map((c, index) => ({ ...c, operations: c.operations.filter((_, opIndex) => !selected || selected.includes(`${index}:${opIndex}`)) })).filter(c => c.operations.length);
+                    const changes = pending.map(c => ({ ...c, operations: c.operations.filter(op => !selected || selected.includes(rowId(c.uri, op))) })).filter(c => c.operations.length);
                     await this.documents.apply(changes); pending = undefined; await panel.webview.postMessage({ type: 'previewClosed' });
                 }
                 return;
@@ -97,7 +100,15 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                     } else if (action === 'import') {
                         const uris = await vscode.window.showOpenDialog({ canSelectMany: false, filters: { Excel: ['xlsx'] } });
                         if (uris?.[0]) { await preview(await importWorkbook(await vscode.workspace.fs.readFile(uris[0]), items, source)); }
-                    } else { await preview(await translate(items, source, message.keys?.length ? message.keys : undefined)); }
+                    } else {
+                        translationCancellation = new vscode.CancellationTokenSource();
+                        let cancelled = false;
+                        try {
+                            const changes = await translate(items, source, message.keys?.length ? message.keys : undefined, summary => { cancelled = !!summary.cancelled; }, undefined, { token: translationCancellation.token, update: changes => preview(changes, true) });
+                            await preview(changes, false, cancelled);
+                        } catch (error) { pending = undefined; await panel.webview.postMessage({ type: 'previewClosed' }); throw error; }
+                        finally { translationCancellation.dispose(); translationCancellation = undefined; }
+                    }
                 } finally { runningLongAction = false; }
                 return;
             }
@@ -149,6 +160,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
         this.active = { panel, run: safeRun };
         const disposables = [
             panel.webview.onDidReceiveMessage((message: Message) => {
+                if (message.action === 'cancelTranslation') { translationCancellation?.cancel(); return; }
                 if (message.action === 'rendered') { this.rendered.set(panel, { uri: document.uri.toString(), languageCount: message.languageCount ?? 0, resourceCount: message.resourceCount ?? 0 }); }
                 else { void safeRun(message); }
             }),
@@ -159,7 +171,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
         ];
         const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(require('./core/discovery').identify(document.uri.fsPath).directory, '**/*.{resw,resx}'));
         disposables.push(watcher, watcher.onDidCreate(() => { void update(); }), watcher.onDidDelete(() => { void update(); }), watcher.onDidChange(() => { void update(); }));
-        panel.onDidDispose(() => { disposed = true; generation++; this.rendered.delete(panel); disposables.forEach(d => d.dispose()); if (this.active?.panel === panel) { this.active = undefined; } });
+        panel.onDidDispose(() => { translationCancellation?.cancel(); disposed = true; generation++; this.rendered.delete(panel); disposables.forEach(d => d.dispose()); if (this.active?.panel === panel) { this.active = undefined; } });
         // Do not await postMessage before VS Code has mounted the webview.
         // The script's ready message requests the authoritative first snapshot.
         void update();
