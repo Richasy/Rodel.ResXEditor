@@ -11,3 +11,4 @@ artifacts/*
 *.log
 .DS_Store
 !artifacts/rodel-resxeditor-0.1.3.vsix
+!artifacts/rodel-resxeditor-0.1.4.vsix

@@ -53,7 +53,7 @@ tr:hover .key-content input, tr.selected .key-content input, .key-content input:
 .key-name { padding: 3px 2px; min-width: 0; text-align: left; justify-content: flex-start; font: 12px var(--vscode-editor-font-family, monospace); line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
 td.value { min-width: 245px; padding: 0; }
 td.comment { min-width: 190px; max-width: 260px; padding: 0; }
-td.value + td.value, td.comment { border-left: 1px solid var(--vscode-panel-border); }
+thead th:nth-child(n + 3), td.value + td.value, td.comment { border-left: 1px solid var(--vscode-panel-border); }
 textarea { display: block; resize: none; width: 100%; min-height: 0; margin: 0; border: 0; background: transparent; padding: 10px 16px; color: var(--vscode-editor-foreground); font: var(--vscode-editor-font-size, 14px) / 1.55 var(--vscode-editor-font-family, monospace); }
 td.comment textarea { font: 12px / 1.65 var(--vscode-font-family, sans-serif); color: var(--vscode-descriptionForeground); }
 textarea:focus { background: var(--vscode-input-background); outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
