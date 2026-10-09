@@ -4,8 +4,9 @@ import { Documents, DocumentChange, LanguageDocument, projectLanguage, snapshot 
 import { Operation, parseResource } from './core/xml';
 import { exportWorkbook, importWorkbook } from './excel';
 import { translate } from './copilot';
+import { editedPreview, previewRowId } from './core/preview';
 
-interface Message { action: string; languageCount?: number; resourceCount?: number; requestId?: number; selection?: string[]; expectedValue?: string; uri?: string; version?: number; key?: string; value?: string; field?: 'value' | 'comment'; keys?: string[]; versions?: Record<string, number>; source?: string }
+interface Message { action: string; languageCount?: number; resourceCount?: number; requestId?: number; selection?: string[]; edits?: Record<string, string>; expectedValue?: string; uri?: string; version?: number; key?: string; value?: string; field?: 'value' | 'comment'; keys?: string[]; versions?: Record<string, number>; source?: string }
 export class ResourceEditor implements vscode.CustomTextEditorProvider {
     static readonly viewType = 'rodel.resourceEditor';
     private active?: { panel: vscode.WebviewPanel; run: (message: Message) => Promise<void> };
@@ -29,7 +30,8 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
         let generation = 0;
         let runningLongAction = false;
         let translationCancellation: vscode.CancellationTokenSource | undefined;
-        const rowId = (uri: string, op: Operation) => JSON.stringify([uri, op.key, op.kind === 'set' ? op.field : 'value']);
+        const rowId = previewRowId;
+        let pendingTranslation = false;
         let pendingReveal: string[] | undefined;
         const diskBaselines = new Map<string, string>();
         const fingerprint = async (uri: vscode.Uri) => createHash('sha256').update(await vscode.workspace.fs.readFile(uri)).digest('hex');
@@ -55,14 +57,16 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 if (pendingReveal === revealKeys) pendingReveal = undefined;
             } catch (error) { await panel.webview.postMessage({ type: 'error', message: String(error), fatal: true }); }
         };
-        const preview = async (changes: DocumentChange[] | undefined, running = false, cancelled = false) => {
+        const preview = async (changes: DocumentChange[] | undefined, running = false, cancelled = false, translation = false) => {
             if (!changes?.length || disposed) { return; }
             pending = changes;
+            pendingTranslation = translation;
             pendingGuards = Object.fromEntries(items.map(i => [i.document.uri.toString(), i.document.version]));
-            await panel.webview.postMessage({ type: 'preview', running, cancelled, rows: changes.flatMap(c => {
+            const contexts = new Map((translation ? parseResource(items.find(item => item.language === source)!.document.getText()).entries : []).map(entry => [entry.key, entry]));
+            await panel.webview.postMessage({ type: 'preview', running, cancelled, translation, rows: changes.flatMap(c => {
                 const item = items.find(i => i.document.uri.toString() === c.uri)!;
                 const entries = parseResource(item.document.getText()).entries;
-                return c.operations.map(op => ({ id: rowId(c.uri, op), language: item.language, key: op.key, field: op.kind === 'set' ? op.field : 'value', before: entries.find(e => e.key === op.key)?.[op.kind === 'set' ? op.field : 'value'] ?? '', after: op.kind === 'set' ? op.value : op.kind === 'add' ? op.value ?? '' : '', existing: !!entries.find(e => e.key === op.key)?.value }));
+                return c.operations.map(op => ({ id: rowId(c.uri, op), sourceValue: contexts.get(op.key)?.value, sourceComment: contexts.get(op.key)?.comment, language: item.language, key: op.key, field: op.kind === 'set' ? op.field : 'value', before: entries.find(e => e.key === op.key)?.[op.kind === 'set' ? op.field : 'value'] ?? '', after: op.kind === 'set' ? op.value : op.kind === 'add' ? op.value ?? '' : '', existing: !!entries.find(e => e.key === op.key)?.value }));
             }) });
         };
         const run = async (message: Message) => {
@@ -83,8 +87,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 if (runningLongAction) throw new Error('Stop translation or wait for completion before applying results.');
                 if (pending) {
                     if (items.some(i => i.document.version !== pendingGuards[i.document.uri.toString()])) { throw new Error('Resources changed after preview. Discard it and generate a new preview.'); }
-                    const selected = message.selection;
-                    const changes = pending.map(c => ({ ...c, operations: c.operations.filter(op => !selected || selected.includes(rowId(c.uri, op))) })).filter(c => c.operations.length);
+                    const changes = editedPreview(pending, message.selection, message.edits, pendingTranslation);
                     await this.documents.apply(changes); pending = undefined; await panel.webview.postMessage({ type: 'previewClosed' });
                 }
                 return;
@@ -104,8 +107,8 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                         translationCancellation = new vscode.CancellationTokenSource();
                         let cancelled = false;
                         try {
-                            const changes = await translate(items, source, message.keys?.length ? message.keys : undefined, summary => { cancelled = !!summary.cancelled; }, undefined, { token: translationCancellation.token, update: changes => preview(changes, true) });
-                            await preview(changes, false, cancelled);
+                            const changes = await translate(items, source, message.keys?.length ? message.keys : undefined, summary => { cancelled = !!summary.cancelled; }, undefined, { token: translationCancellation.token, update: changes => preview(changes, true, false, true) });
+                            await preview(changes, false, cancelled, true);
                         } catch (error) { pending = undefined; await panel.webview.postMessage({ type: 'previewClosed' }); throw error; }
                         finally { translationCancellation.dispose(); translationCancellation = undefined; }
                     }
@@ -180,6 +183,6 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
     private html(webview: vscode.Webview): string {
         const nonce = randomBytes(24).toString('base64');
         const uri = (folder: string, file: string) => webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, folder, file));
-        return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${uri('dist', 'codicon.css')}"><link rel="stylesheet" href="${uri('media', 'editor.css')}"></head><body><main id="app" aria-label="Resource editor"></main><script nonce="${nonce}" src="${uri('media', 'editor.js')}"></script></body></html>`;
+        return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';"><link rel="stylesheet" href="${uri('dist', 'codicon.css')}"><link rel="stylesheet" href="${uri('media', 'editor.css')}"></head><body><main id="app" aria-label="Resource editor"></main><script nonce="${nonce}" src="${uri('dist', 'preview-validation.js')}"></script><script nonce="${nonce}" src="${uri('media', 'editor.js')}"></script></body></html>`;
     }
 }

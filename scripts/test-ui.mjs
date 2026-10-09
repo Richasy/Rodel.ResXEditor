@@ -22,6 +22,8 @@ async function ack() { await page.evaluate(() => window.dispatchEvent(new Messag
 await page.setContent('<html><body><main id="app"></main></body></html>');
 await page.addStyleTag({ content: css + '\n' + codicons });
 await page.addScriptTag({ content: 'window.sent = []; window.acquireVsCodeApi = () => ({ getState: () => window.savedState || {}, setState: state => { window.savedState = state; }, postMessage: message => window.sent.push(message) });' });
+const validation = await build({ entryPoints: ['src/preview-validation.ts'], bundle: true, platform: 'browser', format: 'iife', write: false });
+await page.addScriptTag({ content: validation.outputFiles[0].text });
 await page.addScriptTag({ content: js });
 await state(); await ack();
 await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -152,12 +154,49 @@ await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).uncheck(
 assert.equal(await page.getByRole('button', { name: 'Apply changes', exact: true }).isDisabled(), true);
 await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', running: true, rows: [{ id: 'stable:b', key: 'Second', language: 'fr', field: 'value', before: '', after: 'Second translation' }, { id: 'stable:a', key: 'First', language: 'en-US', field: 'value', before: '', after: 'First translation' }] } })));
 assert.equal(await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).isChecked(), false);
-assert.equal(await page.locator('.preview input').count(), 2);
+assert.equal(await page.locator('.preview input[type=checkbox]').count(), 2);
 await page.getByRole('button', { name: 'Cancel translation', exact: true }).click();
 assert.equal(await page.evaluate(() => window.sent.some(m => m.action === 'cancelTranslation')), true);
 await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', running: false, cancelled: true, rows: [{ id: 'stable:a', key: 'First', language: 'en-US', field: 'value', before: '', after: 'First translation' }, { id: 'stable:b', key: 'Second', language: 'fr', field: 'value', before: '', after: 'Second translation' }] } })));
 assert.equal(await page.getByRole('button', { name: 'Apply changes', exact: true }).isEnabled(), true);
+assert.equal(await page.getByRole('button', { name: 'Cancel translation', exact: true }).isVisible(), false);
 assert.equal(await page.getByRole('checkbox', { name: 'Apply First, en-US, value' }).isChecked(), false);
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
+
+// Review filters, editable drafts, shared token validation and genuine cancel-button visibility.
+const reviewRows = [
+    { id: 'editable:en', key: 'Greeting', language: 'en-US', field: 'value', before: '', after: 'Hello {name}\nWelcome' },
+    { id: 'editable:fr', key: 'Greeting', language: 'fr', field: 'value', before: '', after: 'Bonjour {name}\nBienvenue' }
+];
+async function reviewMessage(running, rows = reviewRows) { await page.evaluate(({ running, rows }) => window.dispatchEvent(new MessageEvent('message', { data: { type: 'preview', translation: true, running, rows } })), { running, rows }); }
+await reviewMessage(true);
+const proposed = page.getByRole('textbox', { name: 'Proposed Greeting, en-US, value', exact: true });
+await proposed.fill('Hi {name}\nGood day');
+await reviewMessage(true, [...reviewRows, { id: 'editable:second', key: 'Save', language: 'en-US', field: 'value', before: '', after: 'Save' }]);
+assert.equal(await proposed.inputValue(), 'Hi {name}\nGood day');
+await page.getByRole('combobox', { name: 'Filter preview language' }).click();
+await page.getByRole('option', { name: 'fr', exact: true }).click();
+assert.equal(await page.locator('.preview tr:not([hidden]) textarea').count(), 1);
+await page.getByRole('button', { name: 'Deselect visible', exact: true }).click();
+assert.equal(await page.getByRole('checkbox', { name: 'Apply Greeting, fr, value' }).isChecked(), false);
+await page.getByRole('combobox', { name: 'Filter preview language' }).click();
+await page.getByRole('option', { name: 'All languages Default', exact: true }).click();
+await page.getByRole('searchbox', { name: 'Search preview', exact: true }).fill('Good day');
+assert.equal(await page.locator('.preview tr:not([hidden]) textarea').count(), 1);
+await proposed.fill('Wrong placeholder');
+assert.equal(await proposed.getAttribute('aria-invalid'), 'true');
+await page.getByRole('searchbox', { name: 'Search preview', exact: true }).fill('');
+await reviewMessage(false, [...reviewRows, { id: 'editable:second', key: 'Save', language: 'en-US', field: 'value', before: '', after: 'Save' }]);
+assert.equal(await page.getByRole('button', { name: 'Cancel translation', exact: true }).isVisible(), false);
+assert.equal(await page.getByRole('button', { name: 'Apply changes', exact: true }).isDisabled(), true);
+await proposed.fill('Hi {name}\nGood day');
+await page.keyboard.press('Control+f');
+assert.equal(await page.getByRole('searchbox', { name: 'Search preview', exact: true }).evaluate(el => el === document.activeElement), true);
+await page.getByRole('button', { name: 'Apply changes', exact: true }).click();
+const editedMessage = await page.evaluate(() => window.sent.at(-1));
+assert.deepEqual(editedMessage.selection, ['editable:en', 'editable:second']);
+assert.equal(editedMessage.edits['editable:en'], 'Hi {name}\nGood day');
+await ack();
 await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
 
 // Use a realistic independent resource sample for the design previews.
@@ -307,6 +346,14 @@ for (const [name, theme] of Object.entries(themes)) {
     await page.screenshot({ path: `test-results/more-actions-${name}.png` });
     await page.getByRole('menuitem', { name: 'Bulk add', exact: true }).press('Escape');
 }
+const visualReviewRows = [...reviewRows.map(row => ({ ...row, sourceValue: '你好，{name}！\n欢迎回来', sourceComment: '主页欢迎语，语气友好、简洁' })), { id: 'preview:long', key: 'Article.Empty', language: 'en-US', field: 'value', sourceValue: '这里还没有文章。尝试刷新列表，或者切换分类查看其他内容。', sourceComment: '列表为空时的说明', before: '', after: 'There are no articles here yet. Refresh the list, or choose another category to explore more content.' }];
+await reviewMessage(false, visualReviewRows);
+for (const [name, theme] of Object.entries(themes)) {
+    await applyTheme(theme);
+    assert.equal(await page.getByRole('button', { name: 'Cancel translation', exact: true }).isVisible(), false);
+    await page.screenshot({ path: 'test-results/editable-preview-' + name + '.png' });
+}
+await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
 assert.deepEqual(errors, []);
 await browser.close();
 console.log('PASS: centered text, long paragraphs/newlines/keys/URLs/comments, resize, height cap and full edits; grid CRUD message, Tab navigation, search/filter, draft preservation, read-only types, preview selection, bulk add and dark/light/high contrast/custom theme screenshots.');

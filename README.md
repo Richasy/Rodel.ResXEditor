@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.10` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.11` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.10.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.11.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.10.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.11.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -109,3 +109,5 @@ Copilot 翻译按目标语言批量处理，默认每批最多 20 条（`rodelRe
 语言显示筛选：点击工具栏 Visible languages，可按语言代码或名称搜索并多选。Source 始终勾选、不可取消，切换 Source 后自动显示新源语言。首次打开默认展示源语言和最多两种目标语言，显示选择保存在当前资源编辑器状态中；支持 Show all 和 Source only。侧栏继续统计所有语言，点击隐藏语言的缺失项会自动显示并定位。筛选不改变增删改资源的范围或 Copilot 目标语言选择。资源筛选和 Source 下拉框采用设置页风格的主题化列表，支持方向键、Home/End、Enter、Escape 与字母定位。
 
 More actions 菜单：Bulk add 批量添加键；Undo/Redo 撤销/重做已提交的资源编辑；Export to Excel… 导出 Key、源语言 Comment 与各语言列到 xlsx；Import from Excel… 读取 xlsx，校验后逐条预览差异，确认才应用；Show comment column 显示/隐藏源语言的注释列，图标和背景高亮表示开启，不附加勾选图标；Open resource XML 打开原文 XML。新增、复制、改名后自动选中并高亮对应行，清除可能隐藏资源的搜索/筛选并滚动定位，聚焦源语言 Value。批量新增高亮所有新行并定位到第一项。
+
+翻译/导入差异预览支持按目标语言筛选，搜索 Key、源文、注释、原值和修改后文本，显示可见/总计/选中数量。筛选只影响显示，应用所有语言中已勾选的项；可批量勾选或取消勾选当前可见项。Proposed 列可直接编辑多行译文，后续批次保留修改和勾选状态。修改后再次检查 XML 字符、占位符、标记与换行；有错误的选中项须修正或取消勾选后才能应用，主机在写入前再次校验。确认应用后支持撤销/重做。Cancel translation 仅在请求进行中显示，完成和取消后隐藏。

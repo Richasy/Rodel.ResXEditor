@@ -70,8 +70,9 @@
             if (event.key === 'Escape' || event.key === 'Tab') { close(); trigger.focus(); if (event.key === 'Escape') event.preventDefault(); }
             if (event.key.length === 1 && /\S/.test(event.key)) { const row = rows.slice(current + 1).concat(rows.slice(0, current + 1)).find(row => row.textContent.toLowerCase().startsWith(event.key.toLowerCase())); if (row) { event.preventDefault(); row.focus(); } }
         });
-        document.addEventListener('pointerdown', event => { if (!host.contains(event.target)) close(); });
-        return { element: host, trigger, setOptions(next, selected) { if (open) trigger.focus(); options = next; select(selected); close(); }, get value() { return value; }, set value(next) { select(next); } };
+        const outside = event => { if (!host.contains(event.target)) close(); };
+        document.addEventListener('pointerdown', outside);
+        return { element: host, trigger, dispose() { close(); document.removeEventListener('pointerdown', outside); if (closePopup === close) closePopup = undefined; }, setOptions(next, selected) { if (open) trigger.focus(); options = next; select(selected); close(); }, get value() { return value; }, set value(next) { select(next); } };
     }
     const toolbar = element('header', 'editor-header');
     const identity = element('div', 'identity');
@@ -341,39 +342,81 @@
         if (!attention) { const complete = element('div', 'all-complete', 'No missing translations'); complete.prepend(icon('check-all')); sidebar.append(complete); }
     }
     let review;
-    function closePreview() { document.querySelector('.preview')?.remove(); previewOpen = false; review = undefined; }
-    function preview(rows, running = false, cancelled = false) {
+    function closePreview() { review?.language.dispose(); closePopup?.(); document.querySelector('.preview')?.remove(); previewOpen = false; review = undefined; }
+    function preview(rows, running = false, cancelled = false, translation = false) {
         if (!review) {
-            closePreview(); previewOpen = true;
+            closePreview(); closeMenu(); previewOpen = true;
             const pane = element('section', 'preview'); pane.setAttribute('role', 'dialog'); pane.setAttribute('aria-modal', 'true'); pane.setAttribute('aria-label', 'Review resource changes');
             const bar = element('div', 'toolbar'); const title = element('h2'); title.setAttribute('aria-live', 'polite'); bar.append(title);
-            const chosen = new Set(); const known = new Set();
-            const apply = button('Apply changes', 'check', 'applyPreview', () => ({ selection: [...chosen] })); apply.classList.add('primary');
+            const chosen = new Set(); const known = new Map(); const edits = new Map();
+            const apply = button('Apply changes', 'check', 'applyPreview', () => ({ selection: [...chosen], edits: Object.fromEntries(edits) })); apply.classList.add('primary');
             const discard = button('Discard', 'close', () => { send('cancelPreview'); closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; });
             const cancel = button('Cancel translation', 'debug-stop', () => { vscode.postMessage({ action: 'cancelTranslation' }); cancel.disabled = true; });
             bar.append(apply, cancel, discard);
-            pane.append(bar, element('p', 'muted', 'Completed batches appear here as they finish. Review and apply to update resource files. External edits invalidate this preview.'));
-            const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); ['Key / language / field', 'Before', 'After'].forEach(t => header.append(element('th', '', t))); grid.append(header); body.append(grid); pane.append(body); app.append(pane);
+            pane.append(bar, element('p', 'muted', 'Edit proposed text before applying. Language and search filters only change the view; checked changes across all languages are applied.'));
+            const filters = element('div', 'preview-filters');
+            const query = element('input', 'search'); query.type = 'search'; query.placeholder = 'Search key, source, comment or proposed text'; query.setAttribute('aria-label', 'Search preview');
+            const language = combo('Filter preview language', () => refreshReview());
+            filters.append(language.element, query);
+            const count = element('span', 'muted'); count.setAttribute('aria-live', 'polite'); filters.append(count);
+            const visibleSelection = button('Select visible', 'check-all', () => { for (const entry of known.values()) if (!entry.tr.hidden) { chosen.add(entry.row.id); entry.checkbox.checked = true; } refreshReview(); });
+            const visibleDeselection = button('Deselect visible', 'clear-all', () => { for (const entry of known.values()) if (!entry.tr.hidden) { chosen.delete(entry.row.id); entry.checkbox.checked = false; } refreshReview(); });
+            filters.append(visibleSelection, visibleDeselection); pane.append(filters);
+            const status = element('p', 'preview-status'); status.setAttribute('role', 'alert'); status.hidden = true; pane.append(status);
+            const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); (translation ? ['Key / language / field', 'Source / comment', 'Current', 'Proposed (editable)'] : ['Key / language / field', 'Current', 'Proposed (editable)']).forEach(t => header.append(element('th', '', t))); grid.append(header); body.append(grid); pane.append(body); app.append(pane);
             toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true;
-            review = { title, chosen, known, apply, discard, cancel, grid };
-            (running ? cancel : apply).focus();
+            review = { title, chosen, known, edits, apply, discard, cancel, grid, query, language, count, status, running, translation, languages: '' };
+            query.addEventListener('input', refreshReview);
+            (running ? cancel : query).focus();
             pane.addEventListener('keydown', event => {
-                if (event.key === 'Tab') { const btns = [...pane.querySelectorAll('button,input')].filter(b => !b.disabled && !b.hidden); const index = btns.indexOf(document.activeElement); event.preventDefault(); btns[(index + (event.shiftKey ? -1 : 1) + btns.length) % btns.length]?.focus(); }
+                if (event.key === 'Tab') { const controls = [...pane.querySelectorAll('button,input,textarea')].filter(control => !control.disabled && control.getClientRects().length); const index = controls.indexOf(document.activeElement); event.preventDefault(); controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length]?.focus(); }
             });
         }
-        const { title, chosen, known, apply, discard, cancel, grid } = review;
+        const { title, chosen, known, edits, cancel, grid, language } = review;
+        review.running = running; review.translation = translation;
         rows.forEach(row => {
             if (known.has(row.id)) return;
-            known.add(row.id); chosen.add(row.id);
-            const tr = element('tr'); const key = element('td', '', row.key + ' · ' + row.language + ' · ' + row.field); const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', 'Apply ' + row.key + ', ' + row.language + ', ' + row.field); checkbox.addEventListener('change', () => checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id)); key.prepend(checkbox); tr.append(key, element('td', 'before', row.before), element('td', 'after', row.after)); grid.append(tr);
+            chosen.add(row.id);
+            const tr = element('tr'); tr.dataset.language = row.language;
+            const key = element('td', '', row.key + ' · ' + row.language + ' · ' + row.field);
+            const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', 'Apply ' + row.key + ', ' + row.language + ', ' + row.field);
+            checkbox.addEventListener('change', () => { checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id); refreshReview(); }); key.prepend(checkbox);
+            const after = element('td', 'after'); const input = element('textarea', 'preview-editor'); input.value = row.after; input.rows = 3; input.setAttribute('aria-label', 'Proposed ' + row.key + ', ' + row.language + ', ' + row.field); input.spellcheck = false;
+            const validation = element('div', 'preview-validation'); validation.id = 'preview-validation-' + (++nextTooltipId); validation.hidden = true; input.setAttribute('aria-describedby', validation.id);
+            input.addEventListener('input', () => { edits.set(row.id, input.value); refreshReview(); }); input.addEventListener('blur', refreshReview); after.append(input, validation);
+            tr.append(key);
+            if (translation) { const context = element('td', 'preview-source', row.sourceValue ?? ''); if (row.sourceComment) context.append(element('div', 'muted', row.sourceComment)); tr.append(context); }
+            tr.append(element('td', 'before', row.before), after); grid.append(tr); known.set(row.id, { row, tr, checkbox, input, validation });
         });
-        title.textContent = (running ? 'Translating · ' : cancelled ? 'Cancelled · ' : 'Review ') + rows.length + ' changes';
-        apply.disabled = running; discard.disabled = running; cancel.hidden = !running;
-        if (!running && document.activeElement === cancel) apply.focus();
+        const languages = [...new Set([...known.values()].map(entry => entry.row.language))].sort();
+        const signature = JSON.stringify(languages);
+        if (review.languages !== signature) { const selected = language.value || 'all'; language.setOptions([{ value: 'all', label: 'All languages', default: true, description: 'Review changes across every target language.' }, ...languages.map(value => ({ value, label: value, description: languageName(value) }))], selected); review.languages = signature; }
+        title.textContent = (running ? 'Translating · ' : cancelled ? 'Cancelled · ' : 'Review ') + known.size + ' changes';
+        cancel.hidden = !running;
+        refreshReview();
+        if (!running && document.activeElement === cancel) review.query.focus();
+    }
+    function refreshReview() {
+        if (!review) return;
+        const { known, chosen, query, language, count, apply, discard, status } = review;
+        const search = query.value.trim().toLocaleLowerCase(); let visible = 0; let invalid = 0;
+        status.hidden = true;
+        for (const entry of known.values()) {
+            const { row, tr, input, validation } = entry;
+            tr.hidden = document.activeElement !== input && ((language.value !== 'all' && language.value !== row.language) || ![row.key, row.language, row.sourceValue ?? '', row.sourceComment ?? '', row.before, input.value].some(value => String(value).toLocaleLowerCase().includes(search)));
+            if (!tr.hidden) visible++;
+            let error = '';
+            try { globalThis.rodelValidatePreview(row.after, input.value, review.translation); } catch (reason) { error = String(reason.message || reason); }
+            input.setAttribute('aria-invalid', String(!!error)); validation.textContent = error; validation.hidden = !error;
+            if (error && chosen.has(row.id)) invalid++;
+        }
+        count.textContent = visible + '/' + known.size + ' shown · ' + chosen.size + ' selected';
+        apply.disabled = review.running || invalid > 0 || chosen.size === 0; discard.disabled = review.running;
+        if (invalid) { status.textContent = invalid + ' selected changes need correction. Filtered-out changes are included; fix or uncheck them before applying.'; status.hidden = false; }
     }
     document.addEventListener('keydown', event => {
         const modifier = event.ctrlKey || event.metaKey;
-        if (modifier && event.key === 'f') { event.preventDefault(); searchBox.focus(); searchBox.select(); }
+        if (modifier && event.key === 'f') { event.preventDefault(); const target = review?.query || searchBox; target.focus(); target.select(); }
         if (modifier && event.key === 's') { event.preventDefault(); document.activeElement?.blur(); send('save'); }
         if (modifier && event.key === 'Enter' && !previewOpen) { event.preventDefault(); document.activeElement?.blur(); send('add', { key: '' }); }
         // Draft editing uses the textarea undo stack; committed document edits use VS Code undo.
@@ -397,8 +440,8 @@
             renderGrid();
             if (reveal.length) requestAnimationFrame(() => { const row = [...table.querySelectorAll('tbody tr')].find(row => row.dataset.key === reveal[0]); const input = row?.querySelector('td.source-column textarea:not([readonly])'); input?.focus({ preventScroll: true }); row?.scrollIntoView({ block: 'center', inline: 'nearest' }); });
             vscode.postMessage({ action: 'rendered', languageCount: items.length, resourceCount: keys().length });
-        } else if (msg.type === 'error') error(msg.message);
-        else if (msg.type === 'preview') preview(msg.rows, msg.running, msg.cancelled);
+        } else if (msg.type === 'error') { if (review) { review.status.textContent = msg.message; review.status.hidden = false; } else error(msg.message); }
+        else if (msg.type === 'preview') preview(msg.rows, msg.running, msg.cancelled, msg.translation);
         else if (msg.type === 'previewClosed') { closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); }
         else if (msg.type === 'ack') { busy = false; pump(); }
     });

@@ -5,9 +5,11 @@ await mkdir('artifacts', { recursive: true });
 await copyFile('node_modules/@vscode/codicons/dist/codicon.css', 'dist/codicon.css');
 await copyFile('node_modules/@vscode/codicons/dist/codicon.ttf', 'dist/codicon.ttf');
 const options = { entryPoints: ['src/extension.ts'], bundle: true, platform: 'node', format: 'cjs', external: ['vscode'], outfile: 'dist/extension.js', sourcemap: true, metafile: true };
-if (process.argv.includes('--watch')) { const ctx = await context(options); await ctx.watch(); }
+const validation = { entryPoints: ['src/preview-validation.ts'], bundle: true, platform: 'browser', format: 'iife', outfile: 'dist/preview-validation.js' };
+if (process.argv.includes('--watch')) { for (const settings of [options, validation]) { const ctx = await context(settings); await ctx.watch(); } }
 else {
     const result = await build(options);
+    await build(validation);
     const packages = new Set(Object.keys(result.metafile.inputs).map(input => input.match(/^(.*node_modules\/(?:@[^/]+\/)?[^/]+)/)?.[1]).filter(Boolean));
     packages.add('node_modules/@vscode/codicons');
     const notices = [];
