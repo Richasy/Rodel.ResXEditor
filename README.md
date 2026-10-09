@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.2` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.3` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.2.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.3.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.2.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.3.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -95,3 +95,5 @@ F5 启动独立 Extension Development Host，默认打开 `samples`。`test:host
 - [Language Model API](https://code.visualstudio.com/api/extension-guides/ai/language-model)
 - [Webview API](https://code.visualstudio.com/api/extension-guides/webview)
 - [VS Code UX Guidelines](https://code.visualstudio.com/api/ux-guidelines/overview)
+
+长文本试用样本位于 `samples/LongText/Strings`，包含中文/英文段落、显式换行和空行、30 行文本、长 URL、长 Key 与长注释。单元格按实际折行自动增高，最多显示 12 行，剩余内容可在单元格内滚动；短文本块在行内垂直居中。

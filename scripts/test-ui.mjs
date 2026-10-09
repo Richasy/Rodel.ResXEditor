@@ -1,6 +1,11 @@
 import { chromium } from 'playwright';
 import { readFile, mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+import { createRequire } from 'node:module';
+await mkdir('.vscode-test', { recursive: true });
+await build({ entryPoints: ['src/core/xml.ts'], outfile: '.vscode-test/ui-xml.cjs', bundle: true, platform: 'node', format: 'cjs' });
+const { parseResource } = createRequire(import.meta.url)('../.vscode-test/ui-xml.cjs');
 const css = await readFile('media/editor.css', 'utf8');
 const js = await readFile('media/editor.js', 'utf8');
 const font = (await readFile('dist/codicon.ttf')).toString('base64');
@@ -19,6 +24,17 @@ await page.addStyleTag({ content: css + '\n' + codicons });
 await page.addScriptTag({ content: 'window.sent = []; window.acquireVsCodeApi = () => ({ getState: () => ({}), setState: () => {}, postMessage: message => window.sent.push(message) });' });
 await page.addScriptTag({ content: js });
 await state(); await ack();
+await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+async function checkCentered() {
+    const offsets = await page.locator('tbody textarea').evaluateAll(inputs => inputs.filter(input => { const style = getComputedStyle(input); return input.clientHeight <= parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + 1; }).map(input => {
+        const style = getComputedStyle(input);
+        const rect = input.getBoundingClientRect();
+        const cell = input.closest('td').getBoundingClientRect();
+        return { label: input.getAttribute('aria-label'), offset: Math.abs(rect.top + parseFloat(style.paddingTop) + parseFloat(style.lineHeight) / 2 - (cell.top + (cell.height - 1) / 2)) };
+    }));
+    for (const { label, offset } of offsets) assert.ok(offset <= 1, `${label}: single-line text center differs by ${offset}px`);
+}
+await checkCentered();
 assert.equal(await page.locator('tbody tr').count(), 4);
 assert.equal(await page.locator('td.missing').count(), 1);
 assert.equal(await page.locator('td.same').count(), 1);
@@ -88,15 +104,64 @@ const themes = {
     highContrast: { background: '#000000', foreground: '#ffffff', panel: '#6fc3df', input: '#000000', sidebar: '#000000', focus: '#f38518', button: '#0f4a85', selection: '#0f4a85' },
     custom: { background: '#191724', foreground: '#e0def4', panel: '#524f67', input: '#26233a', sidebar: '#1f1d2e', focus: '#c4a7e7', button: '#31748f', selection: '#403d52' }
 };
-for (const [name, theme] of Object.entries(themes)) {
+async function applyTheme(theme) {
     await page.evaluate(t => {
         const vars = { 'editor-background': t.background, 'editor-foreground': t.foreground, 'panel-border': t.panel, 'input-background': t.input, 'input-foreground': t.foreground, 'sideBar-background': t.sidebar, 'sideBar-foreground': t.foreground, 'focusBorder': t.focus, 'button-background': t.button, 'button-foreground': '#ffffff', 'list-inactiveSelectionBackground': t.selection, 'descriptionForeground': t.foreground, 'editorWarning-foreground': '#cca700', 'editorInfo-foreground': '#3794ff', 'dropdown-background': t.input, 'dropdown-foreground': t.foreground, 'dropdown-border': t.panel, 'progressBar-background': t.focus, 'font-family': 'Segoe UI', 'font-size': '13px', 'editor-font-family': 'Cascadia Code, Consolas, monospace', 'editor-font-size': '14px' };
         for (const [key, value] of Object.entries(vars)) document.documentElement.style.setProperty(`--vscode-${key}`, value);
     }, theme);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+for (const [name, theme] of Object.entries(themes)) {
+    await applyTheme(theme);
+    await checkCentered();
     await page.screenshot({ path: `test-results/${name}.png`, fullPage: true });
     assert.equal(await page.locator('table').first().evaluate(el => getComputedStyle(el).color), await page.locator('body').evaluate(el => getComputedStyle(el).color), 'table follows foreground changes in every theme');
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), `rgb(${parseInt(theme.background.slice(1,3),16)}, ${parseInt(theme.background.slice(3,5),16)}, ${parseInt(theme.background.slice(5,7),16)})`);
 }
+const longFixture = await Promise.all(['zh-CN', 'en-US'].map(async language => ({ uri: `file:///LongText/Strings/${language}/Resources.resw`, language, version: 1, dirty: false, error: '', entries: parseResource(await readFile(`samples/LongText/Strings/${language}/Resources.resw`, 'utf8')).entries.map(({ key, value, comment, readonly, reason }) => ({ key, value, comment, readonly, reason })) })));
+await state(longFixture);
+for (const [name, theme] of Object.entries(themes)) {
+    await applyTheme(theme);
+    await checkCentered();
+    const measurements = await page.locator('tbody textarea').evaluateAll(inputs => inputs.map(input => ({ label: input.getAttribute('aria-label'), height: input.clientHeight, scroll: input.scrollHeight, width: input.clientWidth, limit: Math.ceil(parseFloat(getComputedStyle(input).lineHeight) * 12 + 20) })));
+    for (const input of measurements) assert.ok(input.height <= input.limit, `${input.label}: bounded long-text height`);
+    const paragraph = measurements.find(input => input.label === 'Long.Paragraph, en-US, value');
+    assert.ok(paragraph.height > 65 && paragraph.scroll <= paragraph.height + 1, 'soft-wrapped paragraph grows to fit');
+    const extreme = measurements.find(input => input.label === 'Stress.Extreme, zh-CN, value');
+    assert.ok(extreme.scroll > extreme.height * 2, 'extreme text retains scrollable content');
+    await page.locator('.grid-scroll').evaluate(el => { el.scrollTop = 0; });
+    await page.screenshot({ path: `test-results/long-text-${name}.png` });
+}
+const paragraphInput = page.getByRole('textbox', { name: 'Long.Paragraph, en-US, value', exact: true });
+const normalFontHeight = await paragraphInput.evaluate(el => el.clientHeight);
+await page.evaluate(() => document.documentElement.style.setProperty('--vscode-editor-font-size', '18px'));
+await page.waitForTimeout(100);
+assert.ok(await paragraphInput.evaluate(el => el.clientHeight) > normalFontHeight, 'editor font change remeasures text without a width change');
+await checkCentered();
+await page.evaluate(() => document.documentElement.style.setProperty('--vscode-editor-font-size', '14px'));
+await page.waitForTimeout(100);
+const wideHeight = await paragraphInput.evaluate(el => el.clientHeight);
+await page.setViewportSize({ width: 950, height: 760 });
+await page.waitForTimeout(100);
+assert.ok(await paragraphInput.evaluate(el => el.clientHeight) >= wideHeight, 'narrow window remeasures wraps');
+assert.ok(await page.locator('table').evaluate(el => el.getBoundingClientRect().width) < 1300, 'unbroken value and key do not force enormous columns');
+const extremeInput = page.getByRole('textbox', { name: 'Stress.Extreme, zh-CN, value', exact: true });
+const originalExtreme = await extremeInput.inputValue();
+await extremeInput.focus(); await extremeInput.press('Control+End');
+assert.ok(await extremeInput.evaluate(el => el.scrollTop) > 0, 'keyboard can reach final line');
+const lastLineScroll = await extremeInput.evaluate(el => el.scrollTop);
+await state(longFixture);
+assert.equal(await extremeInput.evaluate(el => el.scrollTop), lastLineScroll, 'state update preserves scroll position inside long value');
+await extremeInput.fill('短文本');
+assert.ok(await extremeInput.evaluate(el => el.clientHeight) < 50, 'editing a long value to short text shrinks its editor');
+await state(longFixture);
+assert.equal(await extremeInput.inputValue(), '短文本', 'state update keeps edited long-text draft');
+await extremeInput.press('Escape');
+assert.equal(await extremeInput.inputValue(), originalExtreme, 'Escape restores all thirty lines');
+await paragraphInput.fill('Edited paragraph\n' + originalExtreme);
+await paragraphInput.press('Tab');
+assert.equal((await page.evaluate(() => window.sent.at(-1))).value, 'Edited paragraph\n' + originalExtreme, 'long edit sends complete text without truncation');
+await ack();
 assert.deepEqual(errors, []);
 await browser.close();
-console.log('PASS: grid CRUD message, Tab navigation, search/filter, draft preservation, read-only types, preview selection, bulk add and dark/light/high contrast/custom theme screenshots.');
+console.log('PASS: centered text, long paragraphs/newlines/keys/URLs/comments, resize, height cap and full edits; grid CRUD message, Tab navigation, search/filter, draft preservation, read-only types, preview selection, bulk add and dark/light/high contrast/custom theme screenshots.');

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Short.ASCII" xml:space="preserve">
+    <value>A short value</value>
+    <comment></comment>
+  </data>
+  <data name="Long.Paragraph" xml:space="preserve">
+    <value>This paragraph tests wrapping in the resource editor. After opening an article, you can read its complete content, change the reading font size, and save interesting news for later. If the network is temporarily unavailable, keep the page open and try again later; reading progress will update after synchronization. Welcome, {name}! You have {0:N0} unread articles.</value>
+    <comment></comment>
+  </data>
+  <data name="Long.Multiline" xml:space="preserve">
+    <value>Line one: Welcome to the reader.
+Line two: Press Shift + Enter for a new line.
+
+Line four: Keep the empty line above.
+Line five: Reading progress {0:P0}.
+Line six: &lt;b&gt;Important&lt;/b&gt;.
+Line seven: Try again when online.
+Line eight: Done.</value>
+    <comment></comment>
+  </data>
+  <data name="Stress.Unbroken" xml:space="preserve">
+    <value>https://example.test/news/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789</value>
+    <comment></comment>
+  </data>
+  <data name="Stress.Extreme" xml:space="preserve">
+    <value>Line 1: Verify scrolling without truncating the resource value.
+Line 2: Verify scrolling without truncating the resource value.
+Line 3: Verify scrolling without truncating the resource value.
+Line 4: Verify scrolling without truncating the resource value.
+Line 5: Verify scrolling without truncating the resource value.
+Line 6: Verify scrolling without truncating the resource value.
+Line 7: Verify scrolling without truncating the resource value.
+Line 8: Verify scrolling without truncating the resource value.
+Line 9: Verify scrolling without truncating the resource value.
+Line 10: Verify scrolling without truncating the resource value.
+Line 11: Verify scrolling without truncating the resource value.
+Line 12: Verify scrolling without truncating the resource value.
+Line 13: Verify scrolling without truncating the resource value.
+Line 14: Verify scrolling without truncating the resource value.
+Line 15: Verify scrolling without truncating the resource value.
+Line 16: Verify scrolling without truncating the resource value.
+Line 17: Verify scrolling without truncating the resource value.
+Line 18: Verify scrolling without truncating the resource value.
+Line 19: Verify scrolling without truncating the resource value.
+Line 20: Verify scrolling without truncating the resource value.
+Line 21: Verify scrolling without truncating the resource value.
+Line 22: Verify scrolling without truncating the resource value.
+Line 23: Verify scrolling without truncating the resource value.
+Line 24: Verify scrolling without truncating the resource value.
+Line 25: Verify scrolling without truncating the resource value.
+Line 26: Verify scrolling without truncating the resource value.
+Line 27: Verify scrolling without truncating the resource value.
+Line 28: Verify scrolling without truncating the resource value.
+Line 29: Verify scrolling without truncating the resource value.
+Line 30: Verify scrolling without truncating the resource value.</value>
+    <comment></comment>
+  </data>
+  <data name="Stress.Comment" xml:space="preserve">
+    <value>Comment test</value>
+    <comment></comment>
+  </data>
+  <data name="Stress.Key.VeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpaces" xml:space="preserve">
+    <value>Short value</value>
+    <comment></comment>
+  </data>
+</root>

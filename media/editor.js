@@ -85,6 +85,35 @@
     layout.append(scroll, sidebar);
     const status = element('div', 'status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
     app.append(toolbar, filterbar, rowbar, notice, layout, status, menu);
+    // Measure soft wraps as well as explicit line breaks. Cap very large values at
+    // twelve lines, retaining the full text and native scrolling inside the cell.
+    function sizeInput(input) {
+        const style = getComputedStyle(input);
+        const padding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        const limit = Math.ceil(parseFloat(style.lineHeight) * 12 + padding);
+        const previousScroll = input.scrollTop;
+        input.style.height = 'auto';
+        input.style.height = `${Math.min(input.scrollHeight, limit)}px`;
+        input.scrollTop = previousScroll;
+    }
+    const inputSizes = new WeakMap();
+    const sizing = new ResizeObserver(entries => {
+        for (const { target, contentRect } of entries) {
+            const signature = `${contentRect.width}:${getComputedStyle(target).lineHeight}`;
+            if (inputSizes.get(target) !== signature) { inputSizes.set(target, signature); sizeInput(target); }
+        }
+    });
+    let sizingFrame;
+    function refreshSizes() {
+        cancelAnimationFrame(sizingFrame);
+        sizingFrame = requestAnimationFrame(() => { for (const input of table.querySelectorAll('textarea')) sizeInput(input); });
+    }
+    // VS Code updates theme/font variables without necessarily changing column widths.
+    const appearance = new MutationObserver(refreshSizes);
+    appearance.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+    appearance.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+    document.fonts.ready.then(refreshSizes);
+    document.fonts.addEventListener('loadingdone', refreshSizes);
     function updateSelection() { selectionLabel.textContent = `${selected.size} selected`; rowbar.classList.toggle('hidden', !selected.size); }
     function languageName(language) { if (language === 'neutral') return 'Neutral'; try { return new Intl.DisplayNames([language], { type: 'language' }).of(language); } catch { return language; } }
     function error(text) { notice.replaceChildren(element('span', '', text), button('Open XML', 'code', 'text'), button('Dismiss', 'close', () => notice.classList.add('hidden'))); notice.classList.remove('hidden'); }
@@ -116,7 +145,8 @@
         selected = new Set([...selected].filter(key => keys().includes(key)));
         // Preserve focused, unsent drafts when another view or language changes.
         const focused = document.activeElement;
-        const draft = focused?.tagName === 'TEXTAREA' ? { id: focused.dataset.cell, value: focused.value, baseline: focused.dataset.baseline, start: focused.selectionStart, end: focused.selectionEnd, version: focused.dataset.version } : undefined;
+        const draft = focused?.tagName === 'TEXTAREA' ? { id: focused.dataset.cell, value: focused.value, baseline: focused.dataset.baseline, start: focused.selectionStart, end: focused.selectionEnd, version: focused.dataset.version, scrollTop: focused.scrollTop } : undefined;
+        sizing.disconnect();
         table.replaceChildren();
         const head = element('thead'); const headings = element('tr');
         const keyHeader = element('th', 'key'); keyHeader.scope = 'col'; keyHeader.append(element('span', '', 'Resource key'), element('span', 'column-meta', `${keys().length} entries`)); headings.append(keyHeader);
@@ -141,6 +171,8 @@
             const restored = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === draft.id);
             if (restored) { restored.value = draft.value; restored.dataset.baseline = draft.baseline; restored.dataset.version = draft.version; restored.focus(); restored.setSelectionRange(draft.start, draft.end); }
         }
+        for (const input of table.querySelectorAll('textarea')) { sizeInput(input); sizing.observe(input); }
+        if (draft) { const restored = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === draft.id); if (restored) restored.scrollTop = draft.scrollTop; }
         status.replaceChildren(element('span', '', `${displayed.length} resources · ${items.length} languages`), element('span', 'status-hint', 'Tab / Enter to navigate · Shift + Enter for a new line'), element('span', 'save-state', items.some(i => i.dirty) ? `${items.filter(i => i.dirty).length} unsaved` : 'All changes saved'));
         saveButton.disabled = !items.some(i => i.dirty);
         updateSelection();
@@ -154,12 +186,12 @@
         const isSame = field === 'value' && same(key, item);
         const cell = element('td', `${field === 'value' ? 'value' : 'comment'}${isMissing ? ' missing' : isSame ? ' same' : ''}${groupReadOnly ? ' readonly' : ''}${item.language === source ? ' source-column' : ''}`);
         const editor = element('div', 'cell-editor');
-        const input = element('textarea'); input.rows = Math.min(5, Math.max(1, (entry?.[field] || '').split('\n').length)); input.value = entry?.[field] || '';
+        const input = element('textarea'); input.rows = 1; input.value = entry?.[field] || '';
         input.dataset.cell = JSON.stringify([item.uri, key, field]); input.dataset.baseline = input.value; input.dataset.version = String(item.version);
         input.setAttribute('aria-label', `${key}, ${item.language}, ${field}${isMissing ? ', missing' : isSame ? ', same as source' : ''}`);
         input.readOnly = groupReadOnly || !!item.error; input.title = entry?.reason || (groupReadOnly ? 'This key contains a non-text or unsupported resource in another language.' : '');
         input.placeholder = isMissing ? '—' : '';
-        input.addEventListener('input', () => { input.rows = Math.min(5, Math.max(1, input.value.split('\n').length)); });
+        input.addEventListener('input', () => sizeInput(input));
         input.addEventListener('focus', () => { if (input.value === input.dataset.baseline) input.dataset.version = String(items.find(i => i.uri === item.uri)?.version); });
         input.addEventListener('change', () => {
             if (rendering) return;
@@ -179,7 +211,7 @@
             if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
                 event.preventDefault(); const cells = [...table.querySelectorAll('textarea:not([readonly])')]; const next = cells[cells.indexOf(input) + 1]; if (next) next.focus(); else input.blur();
             }
-            if (event.key === 'Escape') { input.value = input.dataset.baseline; input.blur(); }
+            if (event.key === 'Escape') { input.value = input.dataset.baseline; sizeInput(input); input.blur(); }
         });
         editor.append(input);
         if (field === 'value' && (groupReadOnly || isMissing || isSame)) {

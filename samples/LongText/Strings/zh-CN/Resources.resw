@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Short.ASCII" xml:space="preserve">
+    <value>AA==</value>
+    <comment>短文本对齐检查</comment>
+  </data>
+  <data name="Long.Paragraph" xml:space="preserve">
+    <value>这是一段用于测试资源编辑器的长文本。打开文章后，你可以查看完整内容、调整阅读字号，并将感兴趣的新闻加入稍后阅读。网络暂时不可用时，请保留当前页面并稍后重试；同步完成后会自动更新阅读进度。欢迎，{name}！当前共有 {0:N0} 条未读新闻。</value>
+    <comment>长段落包含中文标点、英文、占位符与自动折行。请保持 {name} 和 {0:N0} 原样，测试在窄窗口和不同字号下的显示。</comment>
+  </data>
+  <data name="Long.Multiline" xml:space="preserve">
+    <value>第一行：欢迎使用阅读器。
+第二行：按 Shift + Enter 插入换行。
+
+第四行：保留中间的空行。
+第五行：阅读进度 {0:P0}。
+第六行：&lt;b&gt;重要提示&lt;/b&gt;。
+第七行：离线状态下稍后重试。
+第八行：完成。</value>
+    <comment>显式换行、空行和标记，保存后不得丢失。</comment>
+  </data>
+  <data name="Stress.Unbroken" xml:space="preserve">
+    <value>https://example.test/articles/abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789</value>
+    <comment>没有空格的 URL 也应折行，不能撑宽语言列。</comment>
+  </data>
+  <data name="Stress.Extreme" xml:space="preserve">
+    <value>第 1 行：超长文本滚动检查，完整内容必须保留。
+第 2 行：超长文本滚动检查，完整内容必须保留。
+第 3 行：超长文本滚动检查，完整内容必须保留。
+第 4 行：超长文本滚动检查，完整内容必须保留。
+第 5 行：超长文本滚动检查，完整内容必须保留。
+第 6 行：超长文本滚动检查，完整内容必须保留。
+第 7 行：超长文本滚动检查，完整内容必须保留。
+第 8 行：超长文本滚动检查，完整内容必须保留。
+第 9 行：超长文本滚动检查，完整内容必须保留。
+第 10 行：超长文本滚动检查，完整内容必须保留。
+第 11 行：超长文本滚动检查，完整内容必须保留。
+第 12 行：超长文本滚动检查，完整内容必须保留。
+第 13 行：超长文本滚动检查，完整内容必须保留。
+第 14 行：超长文本滚动检查，完整内容必须保留。
+第 15 行：超长文本滚动检查，完整内容必须保留。
+第 16 行：超长文本滚动检查，完整内容必须保留。
+第 17 行：超长文本滚动检查，完整内容必须保留。
+第 18 行：超长文本滚动检查，完整内容必须保留。
+第 19 行：超长文本滚动检查，完整内容必须保留。
+第 20 行：超长文本滚动检查，完整内容必须保留。
+第 21 行：超长文本滚动检查，完整内容必须保留。
+第 22 行：超长文本滚动检查，完整内容必须保留。
+第 23 行：超长文本滚动检查，完整内容必须保留。
+第 24 行：超长文本滚动检查，完整内容必须保留。
+第 25 行：超长文本滚动检查，完整内容必须保留。
+第 26 行：超长文本滚动检查，完整内容必须保留。
+第 27 行：超长文本滚动检查，完整内容必须保留。
+第 28 行：超长文本滚动检查，完整内容必须保留。
+第 29 行：超长文本滚动检查，完整内容必须保留。
+第 30 行：超长文本滚动检查，完整内容必须保留。</value>
+    <comment>30 行，检查高度上限、内部滚动和最后一行。</comment>
+  </data>
+  <data name="Stress.Comment" xml:space="preserve">
+    <value>注释测试</value>
+    <comment>这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。这是一个用于测试长注释的说明。</comment>
+  </data>
+  <data name="Stress.Key.VeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpacesVeryLongResourceKeyWithoutSpaces" xml:space="preserve">
+    <value>短值</value>
+    <comment>长 Key 不应撑宽表格，同行短文本应保持垂直居中。</comment>
+  </data>
+</root>
