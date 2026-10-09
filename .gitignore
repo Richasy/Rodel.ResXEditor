@@ -6,5 +6,6 @@ test-results/
 artifacts/*
 !artifacts/.gitkeep
 !artifacts/rodel-resxeditor-0.1.0.vsix
+!artifacts/rodel-resxeditor-0.1.1.vsix
 *.log
 .DS_Store

@@ -60,6 +60,9 @@ async function hostTests() {
     const saved = Buffer.from(await vscode.workspace.fs.readFile(uri));
     assert.deepEqual(saved, Buffer.from(original.replace('你好 {0}', '修改 {0}')), 'exact BOM/CRLF/untouched-byte preservation');
     console.log('HOST: edit, undo/redo and UTF-8 save');
+    // Let the native save watcher finish coalescing its own event before simulating
+    // an independent external write (otherwise Windows may classify both as one save).
+    await wait(300);
     const external = original.replace('你好 {0}', '外部 {0}');
     await writeFile(uri, Buffer.from(external));
     await until(() => doc.getText().includes('外部'), 'clean document reloads after external changes');

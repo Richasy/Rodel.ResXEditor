@@ -1,13 +1,13 @@
 # Rodel.ResXEditor
 
-独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.0` 是本地试用版，不发布到 Marketplace。
+独立的 VS Code `.resw` / `.resx` 资源编辑器。当前版本 `0.1.1` 是本地试用版，不发布到 Marketplace。
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.0.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resxeditor-0.1.1.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resxeditor-0.1.0.vsix --force
+code --install-extension .\artifacts\rodel-resxeditor-0.1.1.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
@@ -17,6 +17,7 @@ code --install-extension .\artifacts\rodel-resxeditor-0.1.0.vsix --force
 ## 表格操作
 
 - 固定 Key 列，自动发现同一映射的语言并排列出，源语言下拉框可以切换；Comment 列显示源语言注释，可以隐藏。
+- 顶部提供添加资源、翻译、保存，更多菜单包含批量添加、撤销/重做、Excel、注释显示和原文入口；菜单支持方向键和 Esc。选中资源才显示改名/复制/删除工具栏。右侧语言栏可收起。
 - 单元格失去焦点时提交到 VS Code 文档，不会自动保存。Tab / Shift+Tab、Enter 导航；Shift+Enter 输入换行；Esc 放弃当前单元格草稿。
 - Ctrl/Cmd+Enter 添加键，Bulk add 每行一个键；新增键、重命名、复制以及选中删除同步作用于同一映射的所有语言。
 - 搜索 Key、Value、Comment；按 Key 正反排序；筛选缺失、与源值相同和只读资源。排序只改变展示，不重排原始 XML。

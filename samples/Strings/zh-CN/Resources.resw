@@ -10,4 +10,9 @@
   <data name="Multiline" xml:space="preserve"><value>第一行
 第二行</value></data>
   <data name="Link" xml:space="preserve"><value>&lt;b&gt;查看详情&lt;/b&gt;</value></data>
+  <data name="Loading" xml:space="preserve"><value>正在加载新闻…</value><comment>列表加载状态</comment></data>
+  <data name="News.Empty" xml:space="preserve"><value>暂时没有新内容</value><comment>新闻列表为空时的提示</comment></data>
+  <data name="Reading.Save" xml:space="preserve"><value>稍后阅读</value><comment>文章操作按钮</comment></data>
+  <data name="Search.Placeholder" xml:space="preserve"><value>搜索新闻、话题与作者</value><comment>搜索框占位文字</comment></data>
+  <data name="Settings.Language" xml:space="preserve"><value>界面语言</value><comment>设置页语言选项</comment></data>
 </root>

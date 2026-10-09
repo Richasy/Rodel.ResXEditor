@@ -20,7 +20,7 @@ await page.addScriptTag({ content: 'window.sent = []; window.acquireVsCodeApi = 
 await page.addScriptTag({ content: js });
 await state(); await ack();
 assert.equal(await page.locator('tbody tr').count(), 4);
-assert.equal(await page.locator('td.missing').count(), 2);
+assert.equal(await page.locator('td.missing').count(), 1);
 assert.equal(await page.locator('td.same').count(), 1);
 const count = page.getByRole('textbox', { name: 'Count, en-US, value, missing', exact: true });
 await count.fill('Total {0:N0}'); await count.press('Tab');
@@ -30,7 +30,7 @@ assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria
 await ack();
 await page.getByRole('searchbox').fill('Welcome'); assert.equal(await page.locator('tbody tr').count(), 1);
 await page.getByRole('searchbox').fill('');
-await page.getByLabel('Filter resources').selectOption('missing'); assert.equal(await page.locator('tbody tr').count(), 2);
+await page.getByLabel('Filter resources').selectOption('missing'); assert.equal(await page.locator('tbody tr').count(), 1);
 await page.getByLabel('Filter resources').selectOption('all');
 const draft = page.getByRole('textbox', { name: 'Welcome, zh-CN, value', exact: true });
 await draft.focus(); await draft.fill('unsent draft {name}'); await state(); assert.equal(await draft.inputValue(), 'unsent draft {name}', 'external state preserves focused draft');
@@ -41,10 +41,32 @@ await page.getByLabel('Apply Welcome, en-US, value').uncheck();
 await page.getByRole('button', { name: 'Apply changes', exact: true }).click();
 assert.deepEqual((await page.evaluate(() => window.sent.at(-1))).selection, ['0:1']); await ack();
 await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'previewClosed' } })));
-await page.getByRole('button', { name: 'Bulk add', exact: true }).click();
+await page.getByRole('button', { name: 'More actions', exact: true }).click();
+await page.getByRole('menuitem', { name: 'Bulk add', exact: true }).click();
 await page.getByLabel('Resource keys, one per line').fill('First\nSecond');
 await page.getByRole('button', { name: 'Add keys', exact: true }).click();
 assert.deepEqual((await page.evaluate(() => window.sent.at(-1))).keys, ['First', 'Second']); await ack();
+await page.getByRole('button', { name: 'More actions', exact: true }).click();
+await page.getByRole('menuitem', { name: 'Bulk add', exact: true }).press('Escape');
+assert.equal(await page.getByRole('menu').isVisible(), false, 'Escape closes actions and restores focus');
+await page.getByLabel('Select Welcome', { exact: true }).check();
+assert.equal(await page.locator('.selectionbar').isVisible(), true);
+await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
+assert.equal(await page.locator('.selectionbar').isVisible(), false);
+await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
+assert.equal(await page.getByRole('complementary').isVisible(), false);
+await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
+// Use a realistic independent resource sample for the design previews.
+const demo = [
+    ['Loading', '正在加载新闻…', 'Loading news…', '列表加载状态'],
+    ['News.Empty', '暂时没有新内容', '', '新闻列表为空时的提示'],
+    ['Reading.Save', '稍后阅读', 'Read later', '文章操作按钮'],
+    ['Search.Placeholder', '搜索新闻、话题与作者', 'Search news, topics and authors', '搜索框占位文字'],
+    ['Settings.Language', '界面语言', 'Display language', '设置页语言选项']
+];
+await state(fixture.map((item, index) => ({ ...item, entries: [...item.entries, ...demo.map(([key, value, target, comment]) => ({ key, value: index === 0 ? value : target, comment: index === 0 ? comment : '', readonly: false }))] })));
+await page.getByRole('searchbox').blur();
+await page.setViewportSize({ width: 1440, height: 960 });
 const themes = {
     dark: { background: '#1f1f1f', foreground: '#cccccc', panel: '#333333', input: '#313131', sidebar: '#181818', focus: '#007fd4', button: '#0078d4', selection: '#37373d' },
     light: { background: '#ffffff', foreground: '#3b3b3b', panel: '#e5e5e5', input: '#ffffff', sidebar: '#f8f8f8', focus: '#0090f1', button: '#005fb8', selection: '#e4e6f1' },
@@ -57,6 +79,7 @@ for (const [name, theme] of Object.entries(themes)) {
         for (const [key, value] of Object.entries(vars)) document.documentElement.style.setProperty(`--vscode-${key}`, value);
     }, theme);
     await page.screenshot({ path: `test-results/${name}.png`, fullPage: true });
+    assert.equal(await page.locator('table').first().evaluate(el => getComputedStyle(el).color), await page.locator('body').evaluate(el => getComputedStyle(el).color), 'table follows foreground changes in every theme');
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), `rgb(${parseInt(theme.background.slice(1,3),16)}, ${parseInt(theme.background.slice(3,5),16)}, ${parseInt(theme.background.slice(5,7),16)})`);
 }
 assert.deepEqual(errors, []);

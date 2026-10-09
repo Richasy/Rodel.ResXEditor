@@ -47,7 +47,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 if (!items.some(i => i.language === source)) { source = items.find(i => i.language === explicit)?.language ?? (items.find(i => i.language === 'neutral')?.language ?? items[0].language); }
                 const states = await Promise.all(items.map(async item => ({ ...snapshot(item), warning: await diskConflict(item) ? 'File changed on disk while you have unsaved edits. Open XML to compare and resolve the save conflict.' : '' })));
                 if (disposed || current !== generation) { return; }
-                await panel.webview.postMessage({ type: 'state', items: states, source, showComments: vscode.workspace.getConfiguration('rodelResx', document.uri).get('showComments', true) });
+                await panel.webview.postMessage({ type: 'state', name: require('node:path').basename(document.uri.fsPath), items: states, source, showComments: vscode.workspace.getConfiguration('rodelResx', document.uri).get('showComments', true) });
             } catch (error) { await panel.webview.postMessage({ type: 'error', message: String(error), fatal: true }); }
         };
         const preview = async (changes: DocumentChange[] | undefined) => {

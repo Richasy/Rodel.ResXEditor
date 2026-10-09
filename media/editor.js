@@ -14,6 +14,7 @@
     let nextId = 0;
     let busy = false;
     let rendering = false;
+    let menuOpen = false;
     const queue = [];
     const app = document.getElementById('app');
     const element = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -37,36 +38,64 @@
         return btn;
     }
     function persist() { vscode.setState({ filter, search, descending }); }
-    const toolbar = element('div', 'toolbar'); toolbar.setAttribute('role', 'toolbar'); toolbar.setAttribute('aria-label', 'Resources');
-    toolbar.append(button('Add', 'add', 'add', { key: '' }), button('Bulk add', 'list-flat', () => bulkAdd()), button('Save all', 'save', 'save'), button('Undo', 'discard', 'undo'), button('Redo', 'redo', 'redo'));
+    const toolbar = element('header', 'editor-header');
+    const identity = element('div', 'identity');
+    const fileIcon = element('div', 'file-icon'); fileIcon.append(icon('symbol-string'));
+    const fileInfo = element('div', 'file-info');
+    const fileTitle = element('h1', 'file-title', 'Resources');
+    const fileSubtitle = element('div', 'file-subtitle', 'Language resources'); fileInfo.append(fileTitle, fileSubtitle); identity.append(fileIcon, fileInfo);
+    const headerActions = element('div', 'header-actions'); headerActions.setAttribute('role', 'toolbar'); headerActions.setAttribute('aria-label', 'Resources');
+    const addButton = button('Add resource', 'add', 'add', { key: '' }); addButton.classList.add('primary');
+    const copilotButton = button('Translate', 'sparkle', 'translate', () => ({ keys: [...selected] })); copilotButton.title = 'Translate missing or selected resources with Copilot';
+    const saveButton = button('Save all', 'save', 'save'); saveButton.classList.add('icon-button');
+    const menuButton = button('More actions', 'ellipsis', () => toggleMenu()); menuButton.classList.add('icon-button'); menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-expanded', 'false');
+    headerActions.append(addButton, copilotButton, saveButton, menuButton); toolbar.append(identity, headerActions);
+    const menu = element('div', 'action-menu hidden'); menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', 'Resource actions');
+    const menuAction = (label, glyph, action, data) => { const control = button(label, glyph, () => { closeMenu(); if (typeof action === 'function') action(); else send(action, typeof data === 'function' ? data() : data); }); control.setAttribute('role', 'menuitem'); menu.append(control); return control; };
+    menuAction('Bulk add', 'list-flat', () => bulkAdd());
+    menuAction('Undo', 'discard', 'undo'); menuAction('Redo', 'redo', 'redo');
+    menu.append(element('div', 'menu-separator'));
+    menuAction('Export', 'export', 'export'); menuAction('Import', 'cloud-download', 'import');
+    menu.append(element('div', 'menu-separator'));
+    const commentToggle = menuAction('Comments', 'comment', () => send('comments', { value: String(!showComments) }));
+    menuAction('Open XML', 'code', 'text');
+    function closeMenu() { menuOpen = false; menu.classList.add('hidden'); menuButton.setAttribute('aria-expanded', 'false'); }
+    function toggleMenu() { menuOpen = !menuOpen; menu.classList.toggle('hidden', !menuOpen); menuButton.setAttribute('aria-expanded', String(menuOpen)); if (menuOpen) menu.querySelector('button').focus(); }
+    menu.addEventListener('keydown', event => { const controls = [...menu.querySelectorAll('button')]; const index = controls.indexOf(document.activeElement); if (event.key === 'Escape') { closeMenu(); menuButton.focus(); } if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); controls[(index + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length].focus(); } if (event.key === 'Tab') closeMenu(); });
+    document.addEventListener('pointerdown', event => { if (!menu.contains(event.target) && !menuButton.contains(event.target)) closeMenu(); });
+    const filterbar = element('div', 'filterbar');
+    const searchWrap = element('div', 'search-wrap'); searchWrap.append(icon('search'));
     const searchBox = element('input', 'search'); searchBox.type = 'search'; searchBox.placeholder = 'Search key, value or comment'; searchBox.setAttribute('aria-label', searchBox.placeholder); searchBox.value = search;
-    searchBox.addEventListener('input', () => { search = searchBox.value; persist(); renderGrid(); }); toolbar.append(searchBox);
+    searchBox.addEventListener('input', () => { search = searchBox.value; persist(); renderGrid(); }); searchWrap.append(searchBox); filterbar.append(searchWrap);
     const filterBox = element('select'); filterBox.setAttribute('aria-label', 'Filter resources');
     for (const [value, text] of [['all', 'All resources'], ['missing', 'Missing translations'], ['same', 'Same as source'], ['readonly', 'Read-only resources']]) { const opt = element('option', '', text); opt.value = value; filterBox.append(opt); }
-    filterBox.value = filter; filterBox.addEventListener('change', () => { filter = filterBox.value; persist(); renderGrid(); }); toolbar.append(filterBox);
-    toolbar.append(button('Sort', 'sort-precedence', () => { descending = !descending; persist(); renderGrid(); }));
-    const sourceBox = element('select'); sourceBox.setAttribute('aria-label', 'Source language'); sourceBox.addEventListener('change', () => send('source', { source: sourceBox.value })); toolbar.append(element('span', 'muted', 'Source'), sourceBox);
-    const commentToggle = button('Comments', 'comment', () => send('comments', { value: String(!showComments) })); toolbar.append(commentToggle);
-    toolbar.append(button('Copilot', 'sparkle', 'translate', () => ({ keys: [...selected] })), button('Export', 'export', 'export'), button('Import', 'cloud-download', 'import'), button('Open XML', 'code', 'text'));
-    const rowbar = element('div', 'toolbar');
+    filterBox.value = filter; filterBox.addEventListener('change', () => { filter = filterBox.value; persist(); renderGrid(); }); filterbar.append(filterBox);
+    const sortButton = button('Sort', 'sort-precedence', () => { descending = !descending; persist(); renderGrid(); }); sortButton.classList.add('icon-button'); filterbar.append(sortButton);
+    const filterSpacer = element('div', 'spacer'); filterbar.append(filterSpacer);
+    const sourceBox = element('select'); sourceBox.setAttribute('aria-label', 'Source language'); sourceBox.addEventListener('change', () => send('source', { source: sourceBox.value })); filterbar.append(element('span', 'control-label', 'Source'), sourceBox);
+    const sidebarToggle = button('Toggle language sidebar', 'layout-sidebar-right', () => { layout.classList.toggle('sidebar-hidden'); sidebarToggle.setAttribute('aria-pressed', String(!layout.classList.contains('sidebar-hidden'))); }); sidebarToggle.classList.add('icon-button'); sidebarToggle.setAttribute('aria-pressed', 'true'); filterbar.append(sidebarToggle);
+    const rowbar = element('div', 'selectionbar hidden');
     rowbar.append(button('Rename', 'edit', () => singleAction('rename')), button('Copy', 'copy', () => singleAction('copy')), button('Delete', 'trash', () => { if (!selected.size) error('Select resources to delete.'); else send('deleteMany', { keys: [...selected] }); }));
-    const selectionLabel = element('span', 'muted', 'Select a resource to rename, copy or delete.'); rowbar.append(selectionLabel);
+    const selectionLabel = element('span', 'selection-count'); rowbar.prepend(selectionLabel); rowbar.append(button('Clear selection', 'close', () => { selected.clear(); renderGrid(); }));
     const notice = element('div', 'notice hidden'); notice.setAttribute('role', 'alert');
     const layout = element('div', 'layout');
     const scroll = element('div', 'grid-scroll'); const table = element('table'); table.setAttribute('aria-label', 'Resource translations'); scroll.append(table);
     const sidebar = element('aside', 'sidebar'); sidebar.setAttribute('aria-label', 'Language completion and missing keys');
     layout.append(scroll, sidebar);
     const status = element('div', 'status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-    app.append(toolbar, rowbar, notice, layout, status);
+    app.append(toolbar, filterbar, rowbar, notice, layout, status, menu);
+    function updateSelection() { selectionLabel.textContent = `${selected.size} selected`; rowbar.classList.toggle('hidden', !selected.size); }
+    function languageName(language) { if (language === 'neutral') return 'Neutral'; try { return new Intl.DisplayNames([language], { type: 'language' }).of(language); } catch { return language; } }
     function error(text) { notice.replaceChildren(element('span', '', text), button('Open XML', 'code', 'text'), button('Dismiss', 'close', () => notice.classList.add('hidden'))); notice.classList.remove('hidden'); }
     function singleAction(action) { if (selected.size !== 1) { error('Select exactly one resource.'); return; } send(action, { key: [...selected][0] }); }
     function bulkAdd() {
+        previewOpen = true;
         const pane = element('section', 'preview'); pane.setAttribute('role', 'dialog'); pane.setAttribute('aria-label', 'Add multiple resource keys');
         const bar = element('div', 'toolbar'); bar.append(element('h2', '', 'Add keys in every language'));
         const input = element('textarea'); input.rows = 12; input.placeholder = 'One key per line'; input.setAttribute('aria-label', 'Resource keys, one per line');
-        const close = () => { pane.remove(); toolbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); };
+        const close = () => { pane.remove(); previewOpen = false; toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); };
         bar.append(button('Add keys', 'add', () => { const keys = input.value.split(/\r?\n/).map(k => k.trim()).filter(Boolean); send('addMany', { keys }); close(); }), button('Cancel', 'close', close));
-        pane.append(bar, input); app.append(pane); toolbar.inert = true; rowbar.inert = true; layout.inert = true; input.focus();
+        pane.append(bar, input); app.append(pane); toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true; input.focus();
         pane.addEventListener('keydown', event => { if (event.key === 'Escape') close(); if (event.key === 'Tab') { const controls = [...pane.querySelectorAll('button,textarea')]; const index = controls.indexOf(document.activeElement); event.preventDefault(); controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length].focus(); } });
     }
     function keys() { return [...new Set(items.flatMap(i => i.entries.map(e => e.key)))].sort((a, b) => descending ? b.localeCompare(a) : a.localeCompare(b)); }
@@ -76,50 +105,58 @@
     function visible(key) {
         const entries = items.map(i => i.entries.find(e => e.key === key));
         if (search && ![key, ...entries.flatMap(e => e ? [e.value, e.comment] : [])].some(v => v.toLocaleLowerCase().includes(search.toLocaleLowerCase()))) return false;
-        if (filter === 'missing') return items.some(i => i.language !== source && missing(key, i));
+        if (filter === 'missing') return !entries.some(e => e?.readonly) && items.some(i => i.language !== source && missing(key, i));
         if (filter === 'same') return items.some(i => same(key, i));
         if (filter === 'readonly') return entries.some(e => e?.readonly);
         return true;
     }
     function renderGrid() {
         rendering = true;
+        selected = new Set([...selected].filter(key => keys().includes(key)));
         // Preserve focused, unsent drafts when another view or language changes.
         const focused = document.activeElement;
         const draft = focused?.tagName === 'TEXTAREA' ? { id: focused.dataset.cell, value: focused.value, baseline: focused.dataset.baseline, start: focused.selectionStart, end: focused.selectionEnd, version: focused.dataset.version } : undefined;
         table.replaceChildren();
-        const head = element('thead'); const headings = element('tr'); headings.append(element('th', 'key', 'Key'));
-        items.forEach(i => { const th = element('th', '', `${i.language}${i.dirty ? ' ●' : ''}`); th.scope = 'col'; headings.append(th); });
-        if (showComments) headings.append(element('th', '', 'Comment (source)'));
+        const head = element('thead'); const headings = element('tr');
+        const keyHeader = element('th', 'key'); keyHeader.scope = 'col'; keyHeader.append(element('span', '', 'Resource key'), element('span', 'column-meta', `${keys().length} entries`)); headings.append(keyHeader);
+        items.forEach(i => { const th = element('th', i.language === source ? 'source-column' : ''); th.scope = 'col'; const top = element('div', 'column-title'); top.append(element('span', '', languageName(i.language)), element('span', `role-label${i.language === source ? ' source-label' : ''}`, i.language === source ? 'Source' : 'Translation')); th.append(top, element('div', 'column-meta', `${i.language}${i.dirty ? ' · Unsaved' : ''}`)); headings.append(th); });
+        if (showComments) { const th = element('th', 'comment-heading', 'Comment'); th.append(element('div', 'column-meta', 'Source context')); headings.append(th); }
         head.append(headings); table.append(head);
         const body = element('tbody');
         const displayed = keys().filter(visible);
-        for (const key of displayed) {
+        for (const [index, key] of displayed.entries()) {
             const row = element('tr', selected.has(key) ? 'selected' : ''); row.dataset.key = key;
             const cell = element('td', 'key'); const inner = element('div', 'key-content');
-            const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(key); checkbox.setAttribute('aria-label', `Select ${key}`); checkbox.addEventListener('change', () => { checkbox.checked ? selected.add(key) : selected.delete(key); row.classList.toggle('selected', checkbox.checked); selectionLabel.textContent = `${selected.size} selected · Copilot translates the selection, or all missing when none is selected.`; });
-            const keyButton = button(key, 'symbol-key', () => { selected = new Set([key]); renderGrid(); }); keyButton.classList.add('key-name'); inner.append(checkbox, keyButton); cell.append(inner); row.append(cell);
+            const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(key); checkbox.setAttribute('aria-label', `Select ${key}`); checkbox.addEventListener('change', () => { checkbox.checked ? selected.add(key) : selected.delete(key); row.classList.toggle('selected', checkbox.checked); updateSelection(); });
+            const number = element('span', 'row-number', String(index + 1)); number.setAttribute('aria-hidden', 'true');
+            const keyButton = element('button', 'key-name', key); keyButton.title = key; keyButton.addEventListener('click', () => { selected = new Set([key]); renderGrid(); }); inner.append(checkbox, number, keyButton); cell.append(inner); row.append(cell);
             for (const item of items) row.append(editCell(key, item, 'value'));
             if (showComments) { const item = items.find(i => i.language === source); if (item) row.append(editCell(key, item, 'comment')); }
             body.append(row);
         }
         table.append(body);
+        if (!displayed.length) { const empty = element('tr'); const cell = element('td', 'empty-state', search ? 'No matching resources' : 'No resources in this view'); cell.colSpan = items.length + 1 + Number(showComments); empty.append(cell); body.append(empty); }
         if (draft) {
             const restored = [...table.querySelectorAll('textarea')].find(el => el.dataset.cell === draft.id);
             if (restored) { restored.value = draft.value; restored.dataset.baseline = draft.baseline; restored.dataset.version = draft.version; restored.focus(); restored.setSelectionRange(draft.start, draft.end); }
         }
-        status.textContent = `${displayed.length} / ${keys().length} resources · ${items.length} languages · ${items.filter(i => i.dirty).length} unsaved files · Enter/Tab navigate, Shift+Enter inserts a line, Ctrl+Enter adds a key`;
-        selectionLabel.textContent = `${selected.size} selected · Copilot translates the selection, or all missing when none is selected.`;
+        status.replaceChildren(element('span', '', `${displayed.length} resources · ${items.length} languages`), element('span', 'status-hint', 'Tab / Enter to navigate · Shift + Enter for a new line'), element('span', 'save-state', items.some(i => i.dirty) ? `${items.filter(i => i.dirty).length} unsaved` : 'All changes saved'));
+        saveButton.disabled = !items.some(i => i.dirty);
+        updateSelection();
         renderSidebar();
         rendering = false;
     }
     function editCell(key, item, field) {
         const entry = item.entries.find(e => e.key === key);
-        const cell = element('td', `${field === 'value' ? 'value' : 'comment'}${field === 'value' && missing(key, item) ? ' missing' : field === 'value' && same(key, item) ? ' same' : ''}${entry?.readonly ? ' readonly' : ''}`);
+        const groupReadOnly = items.some(i => i.entries.find(e => e.key === key)?.readonly);
+        const isMissing = field === 'value' && missing(key, item) && !groupReadOnly;
+        const isSame = field === 'value' && same(key, item);
+        const cell = element('td', `${field === 'value' ? 'value' : 'comment'}${isMissing ? ' missing' : isSame ? ' same' : ''}${groupReadOnly ? ' readonly' : ''}${item.language === source ? ' source-column' : ''}`);
         const input = element('textarea'); input.rows = Math.min(5, Math.max(1, (entry?.[field] || '').split('\n').length)); input.value = entry?.[field] || '';
         input.dataset.cell = JSON.stringify([item.uri, key, field]); input.dataset.baseline = input.value; input.dataset.version = String(item.version);
-        input.setAttribute('aria-label', `${key}, ${item.language}, ${field}${missing(key, item) ? ', missing' : same(key, item) ? ', same as source' : ''}`);
-        const groupReadOnly = items.some(i => i.entries.find(e => e.key === key)?.readonly);
+        input.setAttribute('aria-label', `${key}, ${item.language}, ${field}${isMissing ? ', missing' : isSame ? ', same as source' : ''}`);
         input.readOnly = groupReadOnly || !!item.error; input.title = entry?.reason || (groupReadOnly ? 'This key contains a non-text or unsupported resource in another language.' : '');
+        input.placeholder = isMissing ? 'Add a translation…' : field === 'comment' ? '' : '';
         input.addEventListener('focus', () => { if (input.value === input.dataset.baseline) input.dataset.version = String(items.find(i => i.uri === item.uri)?.version); });
         input.addEventListener('change', () => {
             if (rendering) return;
@@ -140,7 +177,8 @@
             if (event.key === 'Escape') { input.value = input.dataset.baseline; input.blur(); }
         });
         cell.append(input);
-        if (entry?.readonly) cell.append(element('span', 'muted', `Read-only: ${entry.reason}`));
+        if (groupReadOnly) { const label = element('span', 'cell-state', 'Read-only'); label.prepend(icon('lock')); label.title = input.title; cell.append(label); }
+        else if (isMissing || isSame) { const label = element('span', `cell-state ${isMissing ? 'missing-label' : 'same-label'}`, isMissing ? 'Missing' : 'Same as source'); label.prepend(icon(isMissing ? 'circle-outline' : 'copy')); cell.append(label); }
         return cell;
     }
     function locate(key, language) {
@@ -150,18 +188,29 @@
         cell?.scrollIntoView({ block: 'center', inline: 'nearest' }); cell?.focus();
     }
     function renderSidebar() {
-        sidebar.replaceChildren(element('h2', '', 'Languages'));
+        const heading = element('div', 'sidebar-heading'); heading.append(element('h2', '', 'LOCALIZATION'), element('span', 'count-badge', String(items.length))); sidebar.replaceChildren(heading);
         const allKeys = keys();
         for (const item of items) {
-            const group = element('section', 'language-status');
-            const missingKeys = allKeys.filter(k => missing(k, item));
-            const total = allKeys.length; const complete = total - missingKeys.length;
-            group.append(element('div', '', `${item.language} · ${total ? Math.round(complete / total * 100) : 100}%`));
+            const group = element('section', `language-status${item.language === source ? ' source-language' : ''}`);
+            const missingKeys = allKeys.filter(k => missing(k, item) && !items.some(i => i.entries.find(e => e.key === k)?.readonly));
+            const total = allKeys.filter(k => !items.some(i => i.entries.find(e => e.key === k)?.readonly)).length; const complete = total - missingKeys.length;
+            const top = element('div', 'language-top'); top.append(element('span', 'language-code', item.language), element('span', 'language-percent', `${total ? Math.round(complete / total * 100) : 100}%`));
+            group.append(top, element('div', 'language-name', languageName(item.language)));
             const progress = element('progress'); progress.max = Math.max(1, total); progress.value = total ? complete : 1; progress.setAttribute('aria-label', `${item.language}: ${complete} of ${total} translated`); group.append(progress);
-            group.append(element('div', 'muted', `${missingKeys.length} missing · ${allKeys.filter(k => same(k, item)).length} same as source`));
-            missingKeys.forEach(key => { const link = button(key, 'circle-outline', () => locate(key, item.language)); link.classList.add('missing-link'); group.append(link); });
+            const summary = element('div', 'language-summary'); summary.append(icon(missingKeys.length ? 'circle-outline' : 'check'), element('span', '', item.language === source ? 'Source language' : missingKeys.length ? `${missingKeys.length} missing` : 'Complete')); group.append(summary);
+            const sameCount = allKeys.filter(k => same(k, item)).length;
+            if (sameCount) group.append(element('div', 'same-summary', `${sameCount} same as source`));
             sidebar.append(group);
         }
+        const missingHeading = element('h2', 'missing-heading', 'NEEDS ATTENTION'); sidebar.append(missingHeading);
+        let attention = 0;
+        for (const item of items.filter(i => i.language !== source)) {
+            const missingKeys = allKeys.filter(k => missing(k, item) && !items.some(i => i.entries.find(e => e.key === k)?.readonly));
+            if (!missingKeys.length) continue;
+            const label = element('div', 'attention-language', item.language); sidebar.append(label);
+            missingKeys.forEach(key => { const link = button(key, 'circle-outline', () => locate(key, item.language)); link.classList.add('missing-link'); sidebar.append(link); attention++; });
+        }
+        if (!attention) { const complete = element('div', 'all-complete', 'No missing translations'); complete.prepend(icon('check-all')); sidebar.append(complete); }
     }
     function closePreview() { document.querySelector('.preview')?.remove(); previewOpen = false; }
     function preview(rows) {
@@ -170,11 +219,11 @@
         const bar = element('div', 'toolbar'); bar.append(element('h2', '', `Review ${rows.length} changes`));
         const chosen = new Set(rows.map(row => row.id));
         const apply = button('Apply changes', 'check', 'applyPreview', () => ({ selection: [...chosen] })); apply.classList.add('primary');
-        bar.append(apply, button('Discard', 'close', () => { send('cancelPreview'); closePreview(); toolbar.inert = false; rowbar.inert = false; layout.inert = false; }));
+        bar.append(apply, button('Discard', 'close', () => { send('cancelPreview'); closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; }));
         pane.append(bar, element('p', 'muted', 'Existing values shown below will be replaced. Changes remain unsaved and can be undone. New external edits invalidate this preview.'));
         const body = element('div', 'preview-body'); const grid = element('table'); const header = element('tr'); ['Key / language / field', 'Before', 'After'].forEach(t => header.append(element('th', '', t))); grid.append(header);
         rows.forEach(row => { const tr = element('tr'); const key = element('td', '', `${row.key} · ${row.language} · ${row.field}`); const checkbox = element('input'); checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.setAttribute('aria-label', `Apply ${row.key}, ${row.language}, ${row.field}`); checkbox.addEventListener('change', () => checkbox.checked ? chosen.add(row.id) : chosen.delete(row.id)); key.prepend(checkbox); tr.append(key, element('td', 'before', row.before), element('td', 'after', row.after)); grid.append(tr); }); body.append(grid); pane.append(body); app.append(pane);
-        toolbar.inert = true; rowbar.inert = true; layout.inert = true; apply.focus();
+        toolbar.inert = true; filterbar.inert = true; rowbar.inert = true; layout.inert = true; apply.focus();
         pane.addEventListener('keydown', event => {
             if (event.key === 'Tab') { const btns = [...pane.querySelectorAll('button,input')]; const index = btns.indexOf(document.activeElement); event.preventDefault(); btns[(index + (event.shiftKey ? -1 : 1) + btns.length) % btns.length].focus(); }
         });
@@ -190,7 +239,9 @@
     window.addEventListener('message', event => {
         const msg = event.data;
         if (msg.type === 'state') {
-            items = msg.items; source = msg.source; showComments = msg.showComments;
+            source = msg.source; items = [...msg.items].sort((a, b) => a.language === source ? -1 : b.language === source ? 1 : a.language.localeCompare(b.language)); showComments = msg.showComments;
+            fileTitle.textContent = msg.name || 'Resources';
+            fileSubtitle.textContent = `${items.length} languages · ${keys().length} resources`;
             sourceBox.replaceChildren(); items.forEach(i => { const option = element('option', '', i.language); option.value = i.language; sourceBox.append(option); }); sourceBox.value = source;
             commentToggle.setAttribute('aria-pressed', String(showComments));
             const errors = items.filter(i => i.error || i.warning); if (errors.length) error(errors.map(i => `${i.language}: ${i.error || i.warning}`).join(' · '));
@@ -198,7 +249,7 @@
             vscode.postMessage({ action: 'rendered', languageCount: items.length, resourceCount: keys().length });
         } else if (msg.type === 'error') error(msg.message);
         else if (msg.type === 'preview') preview(msg.rows);
-        else if (msg.type === 'previewClosed') { closePreview(); toolbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); }
+        else if (msg.type === 'previewClosed') { closePreview(); toolbar.inert = false; filterbar.inert = false; rowbar.inert = false; layout.inert = false; searchBox.focus(); }
         else if (msg.type === 'ack') { busy = false; pump(); }
     });
     send('ready');
