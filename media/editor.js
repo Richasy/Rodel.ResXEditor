@@ -90,10 +90,11 @@
     menuAction('Bulk add', 'list-flat', () => bulkAdd());
     menuAction('Undo', 'discard', 'undo'); menuAction('Redo', 'redo', 'redo');
     menu.append(element('div', 'menu-separator'));
-    menuAction('Export', 'export', 'export'); menuAction('Import', 'cloud-download', 'import');
+    menuAction('Export to Excel…', 'export', 'export'); menuAction('Import from Excel…', 'cloud-download', 'import');
     menu.append(element('div', 'menu-separator'));
-    const commentToggle = menuAction('Comments', 'comment', () => send('comments', { value: String(!showComments) }));
-    menuAction('Open XML', 'code', 'text');
+    const commentToggle = menuAction('Show comment column', 'comment', () => send('comments', { value: String(!showComments) })); commentToggle.setAttribute('role', 'menuitemcheckbox');
+    commentToggle.title = 'Show or hide the source language comment column';
+    menuAction('Open resource XML', 'code', 'text');
     function closeMenu() { menuOpen = false; menu.classList.add('hidden'); menuButton.setAttribute('aria-expanded', 'false'); }
     function toggleMenu() { closePopup?.(); menuOpen = !menuOpen; menu.classList.toggle('hidden', !menuOpen); menuButton.setAttribute('aria-expanded', String(menuOpen)); if (menuOpen) menu.querySelector('button').focus(); }
     menu.addEventListener('keydown', event => { const controls = [...menu.querySelectorAll('button')]; const index = controls.indexOf(document.activeElement); if (event.key === 'Escape') { closeMenu(); menuButton.focus(); } if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); controls[(index + (event.key === 'ArrowDown' ? 1 : -1) + controls.length) % controls.length].focus(); } if (event.key === 'Tab') closeMenu(); });
@@ -374,9 +375,12 @@
             sourceBox.setOptions(items.map(i => ({ value: i.language, label: i.language, description: languageName(i.language) })), source);
             if (languagesOpen) renderLanguageOptions();
             persist();
-            commentToggle.setAttribute('aria-pressed', String(showComments));
+            commentToggle.setAttribute('aria-checked', String(showComments));
             const errors = items.filter(i => i.error || i.warning); if (errors.length) error(errors.map(i => `${i.language}: ${i.error || i.warning}`).join(' · '));
+            const reveal = Array.isArray(msg.revealKeys) ? msg.revealKeys.filter(key => keys().includes(key)) : [];
+            if (reveal.length) { search = ''; filter = 'all'; searchBox.value = ''; filterBox.value = 'all'; selected = new Set(reveal); persist(); }
             renderGrid();
+            if (reveal.length) requestAnimationFrame(() => { const row = [...table.querySelectorAll('tbody tr')].find(row => row.dataset.key === reveal[0]); const input = row?.querySelector('td.source-column textarea:not([readonly])'); input?.focus({ preventScroll: true }); row?.scrollIntoView({ block: 'center', inline: 'nearest' }); });
             vscode.postMessage({ action: 'rendered', languageCount: items.length, resourceCount: keys().length });
         } else if (msg.type === 'error') error(msg.message);
         else if (msg.type === 'preview') preview(msg.rows);

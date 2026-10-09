@@ -28,6 +28,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
         let disposed = false;
         let generation = 0;
         let runningLongAction = false;
+        let pendingReveal: string[] | undefined;
         const diskBaselines = new Map<string, string>();
         const fingerprint = async (uri: vscode.Uri) => createHash('sha256').update(await vscode.workspace.fs.readFile(uri)).digest('hex');
         const diskConflict = async (item: LanguageDocument) => {
@@ -47,7 +48,9 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 if (!items.some(i => i.language === source)) { source = items.find(i => i.language === explicit)?.language ?? (items.find(i => i.language === 'neutral')?.language ?? items[0].language); }
                 const states = await Promise.all(items.map(async item => ({ ...snapshot(item), warning: await diskConflict(item) ? 'File changed on disk while you have unsaved edits. Open XML to compare and resolve the save conflict.' : '' })));
                 if (disposed || current !== generation) { return; }
-                await panel.webview.postMessage({ type: 'state', name: require('node:path').basename(document.uri.fsPath), items: states, source, showComments: vscode.workspace.getConfiguration('rodelResx', document.uri).get('showComments', true) });
+                const revealKeys = pendingReveal;
+                await panel.webview.postMessage({ type: 'state', name: require('node:path').basename(document.uri.fsPath), items: states, source, revealKeys, showComments: vscode.workspace.getConfiguration('rodelResx', document.uri).get('showComments', true) });
+                if (pendingReveal === revealKeys) pendingReveal = undefined;
             } catch (error) { await panel.webview.postMessage({ type: 'error', message: String(error), fatal: true }); }
         };
         const preview = async (changes: DocumentChange[] | undefined) => {
@@ -108,7 +111,9 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                     const operations: Operation[] = keys.filter(key => action === 'addMany' || resource.entries.some(e => e.key === key)).map(key => action === 'addMany' ? { kind: 'add', key } : { kind: 'delete', key });
                     changes.push({ uri: item.document.uri.toString(), version: message.versions?.[item.document.uri.toString()] ?? -1, operations });
                 }
-                await this.documents.apply(changes); return;
+                await this.documents.apply(changes);
+                if (action === 'addMany') pendingReveal = keys;
+                return;
             }
             const key = message.key;
             if (typeof key !== 'string') { throw new Error('Missing resource key.'); }
@@ -134,6 +139,7 @@ export class ResourceEditor implements vscode.CustomTextEditorProvider {
                 changes.push({ uri: item.document.uri.toString(), version: message.version ?? -1, operations });
             } else { throw new Error(`Unknown action: ${action}`); }
             await this.documents.apply(changes);
+            if (['add', 'copy', 'rename'].includes(action)) pendingReveal = changes.flatMap(change => change.operations.flatMap(operation => operation.kind === 'add' ? [operation.key] : operation.kind === 'rename' ? [operation.newKey] : [])).filter((key, index, keys) => keys.indexOf(key) === index);
         };
         const safeRun = async (message: Message) => {
             try { await run(message); }

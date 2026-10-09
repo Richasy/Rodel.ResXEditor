@@ -17,7 +17,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
 const entries = [{ key: 'Welcome', value: '欢迎，{name}！', comment: '首页欢迎语', readonly: false }, { key: 'Count', value: '共 {0:N0} 条新闻', comment: '', readonly: false }, { key: 'Multiline', value: '第一行\n第二行', comment: '', readonly: false }, { key: 'Logo', value: 'AA==', comment: '', readonly: true, reason: 'Unsupported resource type: Bitmap' }];
 const fixture = [{ uri: 'file:///zh.resw', version: 1, dirty: false, error: '', language: 'zh-CN', entries }, { uri: 'file:///en.resw', version: 1, dirty: false, error: '', language: 'en-US', entries: [{ key: 'Welcome', value: 'Welcome, {name}!', comment: '', readonly: false }, { key: 'Multiline', value: '第一行\n第二行', comment: '', readonly: false }] }];
-async function state(items = fixture) { await page.evaluate(items => window.dispatchEvent(new MessageEvent('message', { data: { type: 'state', items, source: 'zh-CN', showComments: true } })), items); }
+async function state(items = fixture, extra = {}) { await page.evaluate(({ items, extra }) => window.dispatchEvent(new MessageEvent('message', { data: { type: 'state', items, source: 'zh-CN', showComments: true, ...extra } })), { items, extra }); }
 async function ack() { await page.evaluate(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'ack' } }))); }
 await page.setContent('<html><body><main id="app"></main></body></html>');
 await page.addStyleTag({ content: css + '\n' + codicons });
@@ -123,6 +123,26 @@ await page.getByLabel('Select Welcome', { exact: true }).check();
 assert.equal(await page.locator('.selectionbar').isVisible(), true);
 await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
 assert.equal(await page.locator('.selectionbar').isVisible(), false);
+await page.getByRole('button', { name: 'More actions', exact: true }).click();
+const commentsMenu = page.getByRole('menuitemcheckbox', { name: 'Show comment column', exact: true });
+assert.equal(await commentsMenu.getAttribute('aria-checked'), 'true');
+assert.equal(await commentsMenu.locator('.codicon-comment').count(), 1);
+assert.equal(await commentsMenu.locator('.codicon-check').count(), 0, 'toggle keeps its comment icon without a checkmark');
+assert.equal(await page.getByRole('menuitem', { name: 'Export to Excel…', exact: true }).count(), 1);
+assert.equal(await page.getByRole('menuitem', { name: 'Import from Excel…', exact: true }).count(), 1);
+await commentsMenu.click(); assert.equal((await page.evaluate(() => window.sent.at(-1))).value, 'false'); await ack();
+await state(fixture, { showComments: false }); assert.equal(await page.locator('th.comment-heading').count(), 0);
+await page.getByRole('button', { name: 'More actions', exact: true }).click(); assert.equal(await commentsMenu.getAttribute('aria-checked'), 'false');
+await commentsMenu.click(); await ack(); await state();
+const addedKey = 'ZZZ.New.Resource';
+const addedFixture = fixture.map(item => ({ ...item, entries: [...item.entries, { key: addedKey, value: '', comment: '', readonly: false }] }));
+await page.getByRole('searchbox', { name: 'Search key, value or comment', exact: true }).fill('Welcome');
+await state(addedFixture, { revealKeys: [addedKey] });
+await page.waitForTimeout(50);
+assert.equal(await page.getByRole('searchbox', { name: 'Search key, value or comment', exact: true }).inputValue(), '', 'successful add clears filters that would hide the new key');
+assert.equal(await page.locator('tr.selected').getAttribute('data-key'), addedKey);
+assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), `${addedKey}, zh-CN, value, missing`);
+await state();
 await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
 assert.equal(await page.getByRole('complementary').isVisible(), false);
 await page.getByRole('button', { name: 'Toggle language sidebar', exact: true }).click();
@@ -216,6 +236,11 @@ assert.deepEqual(errors, []);
 // Many-language table: bounded columns, persistent selection, source switching,
 // all-language translation scope, and a searchable popup with scrolling.
 const cultures = ['de', 'es', 'fr', 'it', 'ja', 'ko', 'nl', 'pl', 'pt-BR', 'ru', 'sv', 'tr', 'uk', 'zh-Hant'];
+const manyRows = fixture.map(item => ({ ...item, entries: [...item.entries, ...Array.from({ length: 100 }, (_, i) => ({ key: `Row.${String(i).padStart(3, '0')}`, value: 'Text', comment: '', readonly: false })), { key: 'ZZZ.Added.Last', value: '', comment: '', readonly: false }] }));
+await state(manyRows, { revealKeys: ['ZZZ.Added.Last'] }); await page.waitForTimeout(50);
+assert.ok(await page.locator('.grid-scroll').evaluate(el => el.scrollTop) > 1000, 'added last row scrolls into view');
+assert.equal(await page.locator('tr.selected').getAttribute('data-key'), 'ZZZ.Added.Last');
+await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
 const manyFixture = [...fixture, ...cultures.map(language => ({ ...fixture[1], uri: `file:///${language}.resw`, language, entries: [] }))];
 await state(manyFixture);
 assert.equal(await page.locator('thead th').count(), 4, '16 discovered languages do not add unselected columns');
@@ -263,6 +288,10 @@ for (const [name, theme] of Object.entries(themes)) {
     await resourceCombo.click();
     await page.screenshot({ path: `test-results/settings-combo-${name}.png` });
     await page.getByRole('option', { name: 'All resources Default', exact: true }).press('Escape');
+    await page.getByRole('button', { name: 'More actions', exact: true }).click();
+    assert.notEqual(await commentsMenu.evaluate(el => getComputedStyle(el).backgroundColor), await page.getByRole('menuitem', { name: 'Export to Excel…', exact: true }).evaluate(el => getComputedStyle(el).backgroundColor), 'active comment toggle is visibly highlighted');
+    await page.screenshot({ path: `test-results/more-actions-${name}.png` });
+    await page.getByRole('menuitem', { name: 'Bulk add', exact: true }).press('Escape');
 }
 assert.deepEqual(errors, []);
 await browser.close();
