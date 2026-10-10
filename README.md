@@ -1,4 +1,4 @@
-# Rodel.ResXEditor
+# Rodel Resource Editor
 
 [English](#english) · [简体中文](#简体中文)
 
@@ -43,7 +43,7 @@ VS Code handles Copilot consent. No translation-service API key is required; bas
 
 ### Get started
 
-1. Install from Marketplace, or use **Extensions → … → Install from VSIX** with `artifacts/rodel-resxeditor-0.0.1.vsix`.
+1. Install from Marketplace, or use **Extensions → … → Install from VSIX** with `artifacts/rodel-resource-editor-0.0.1.vsix`.
 2. Right-click a resource and choose **Open Resource Editor**, or run **Rodel: Open Resource Editor**.
 3. Choose source/visible languages, edit cells, then **Save all**. The editor is optional by default; use **Reopen Editor With** to make it the default.
 
@@ -97,7 +97,7 @@ Independent examples live in `samples/Strings`, `samples/LongText/Strings` and `
 
 ### 开始使用
 
-1. 从 Marketplace 安装，或通过 **扩展 → … → 从 VSIX 安装** 选择 `artifacts/rodel-resxeditor-0.0.1.vsix`。
+1. 从 Marketplace 安装，或通过 **扩展 → … → 从 VSIX 安装** 选择 `artifacts/rodel-resource-editor-0.0.1.vsix`。
 2. 右键资源选择 **Open Resource Editor**，或运行 **Rodel: Open Resource Editor**。
 3. 选择源语言和显示语言，编辑后点击 **Save all**。默认不抢占 XML 编辑器，可通过 **Reopen Editor With** 设为默认。
 

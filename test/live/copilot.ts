@@ -12,9 +12,9 @@ export async function run() {
     const record = (value: unknown) => writeFile(report, JSON.stringify(value, null, 2), 'utf8');
     const root = process.env.RODEL_LIVE_WORKSPACE ? vscode.Uri.file(process.env.RODEL_LIVE_WORKSPACE) : vscode.workspace.workspaceFolders![0].uri;
     try {
-        const extension = await vscode.extensions.getExtension('RichasyZhang.rodel-resxeditor')!.activate();
+        const extension = await vscode.extensions.getExtension('RichasyZhang.rodel-resource-editor')!.activate();
         const translateResources: typeof translate = extension.translateResources;
-        assert.equal(typeof translateResources, 'function', 'live test calls the real extension API so Copilot consent belongs to RichasyZhang.rodel-resxeditor');
+        assert.equal(typeof translateResources, 'function', 'live test calls the real extension API so Copilot consent belongs to RichasyZhang.rodel-resource-editor');
         const documents = new Documents();
         const source = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(root, 'Strings', 'zh-CN', 'Resources.resw'));
         const items = await documents.discover(source);

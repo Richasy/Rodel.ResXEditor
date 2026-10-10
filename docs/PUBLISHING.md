@@ -4,9 +4,10 @@
 
 - Publisher ID: **RichasyZhang**.
 - Publisher Name: **云之幻**.
-- Extension ID: **RichasyZhang.rodel-resxeditor**.
+- Extension Name: **Rodel Resource Editor**.
+- Extension ID: **RichasyZhang.rodel-resource-editor**.
 - Version: **0.0.1**.
-- Upload: **artifacts/rodel-resxeditor-0.0.1.vsix**.
+- Upload: **artifacts/rodel-resource-editor-0.0.1.vsix**.
 - Extension metadata: `package.json`.
 - Generated VSIX manifest: `artifacts/extension.vsixmanifest`，已包含在 VSIX 内，不必单独上传。
 - Release checksum and screenshot URLs: `artifacts/release-manifest.json`.
@@ -18,9 +19,9 @@ The Microsoft login email/display name is not the publisher ID. Create/select **
 ## 手动上传 / Manual upload
 
 1. 打开 [发布者管理页](https://marketplace.visualstudio.com/manage)，用你的 Microsoft 账号登录，创建或选择上述 Publisher。
-2. 点击 **New extension → Visual Studio Code**，上传 `artifacts/rodel-resxeditor-0.0.1.vsix`。
+2. 点击 **New extension → Visual Studio Code**，上传 `artifacts/rodel-resource-editor-0.0.1.vsix`。
 3. 完成表单并提交，等待验证和发布成功；若有错误，先根据页面提示修复。浏览器上传不需要把 PAT 提供给助手或写入仓库。
-4. 打开公开页面，检查图标、中英介绍和四张截图，再在干净的 VS Code 配置中安装。预期链接：`https://marketplace.visualstudio.com/items?itemName=RichasyZhang.rodel-resxeditor`。
+4. 打开公开页面，检查图标、中英介绍和四张截图，再在干净的 VS Code 配置中安装。预期链接：`https://marketplace.visualstudio.com/items?itemName=RichasyZhang.rodel-resource-editor`。
 5. 向助手确认成功后，再将 GitHub 仓库开源。当前保持私有，没有自动发布/开源。
 
 English: sign in to publisher management, choose **RichasyZhang**, select **New extension → Visual Studio Code**, upload the VSIX, submit and wait for validation. Check the public listing/screenshots and installation. Confirm success before making the GitHub repository public. The browser-upload flow does not require storing a PAT in the project.
@@ -36,8 +37,8 @@ The repository README keeps relative PNGs. The package script calls official vsc
 ```powershell
 npm ci
 npm run package
-code --uninstall-extension RichasyZhang.rodel-resxeditor
-code --install-extension .\artifacts\rodel-resxeditor-0.0.1.vsix --force
+code --uninstall-extension RichasyZhang.rodel-resource-editor
+code --install-extension .\artifacts\rodel-resource-editor-0.0.1.vsix --force
 code --list-extensions --show-versions
 ```
 
@@ -46,6 +47,10 @@ code --list-extensions --show-versions
 Apply/save needed preview results before reloading: preview drafts are session-local. Development hosts use the source checkout; regular windows use the installed VSIX.
 
 ## 后续更新 / Updates
+
+已有扩展上传新版本使用 **Update**。临时下架使用 **Unpublish**；不要使用 **Remove**，删除后的扩展名称会永久保留，原发布者也无法重新使用。
+
+Use **Update** to upload a new version and **Unpublish** for temporary withdrawal. **Remove** permanently reserves the deleted extension name, including against reuse by its original publisher.
 
 成功发布后需递增版本，保持 Publisher 与扩展名称稳定，不重复使用已发布版本。不要在未准备发布时运行 vsce publish。当前采用手动上传，无自动发布配置。
 

@@ -24,7 +24,7 @@ export async function run() {
 }
 async function hostTests() {
     const root = vscode.workspace.workspaceFolders![0].uri;
-    const extension = vscode.extensions.getExtension('RichasyZhang.rodel-resxeditor')!;
+    const extension = vscode.extensions.getExtension('RichasyZhang.rodel-resource-editor')!;
     assert.ok(extension, 'extension registered');
     const exports = await extension.activate();
     assert.ok(exports.documents, 'activation returns document service');
