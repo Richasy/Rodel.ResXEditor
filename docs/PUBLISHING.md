@@ -6,8 +6,8 @@
 - Publisher Name: **云之幻**.
 - Extension Name: **Rodel Resource Editor**.
 - Extension ID: **RichasyZhang.rodel-resource-editor**.
-- Version: **0.0.1**.
-- Upload: **artifacts/rodel-resource-editor-0.0.1.vsix**.
+- Version: **0.0.2**.
+- Upload: **artifacts/rodel-resource-editor-0.0.2.vsix**.
 - Extension metadata: `package.json`.
 - Generated VSIX manifest: `artifacts/extension.vsixmanifest`，已包含在 VSIX 内，不必单独上传。
 - Release checksum and screenshot URLs: `artifacts/release-manifest.json`.
@@ -19,18 +19,20 @@ The Microsoft login email/display name is not the publisher ID. Create/select **
 ## 手动上传 / Manual upload
 
 1. 打开 [发布者管理页](https://marketplace.visualstudio.com/manage)，用你的 Microsoft 账号登录，创建或选择上述 Publisher。
-2. 点击 **New extension → Visual Studio Code**，上传 `artifacts/rodel-resource-editor-0.0.1.vsix`。
+2. 选择已有扩展的 **Update**，上传 `artifacts/rodel-resource-editor-0.0.2.vsix`。
 3. 完成表单并提交，等待验证和发布成功；若有错误，先根据页面提示修复。浏览器上传不需要把 PAT 提供给助手或写入仓库。
 4. 打开公开页面，检查图标、中英介绍和四张截图，再在干净的 VS Code 配置中安装。预期链接：`https://marketplace.visualstudio.com/items?itemName=RichasyZhang.rodel-resource-editor`。
-5. 向助手确认成功后，再将 GitHub 仓库开源。当前保持私有，没有自动发布/开源。
+5. 仓库现已开源；本次只生成更新包，不自动发布到 Marketplace。
 
-English: sign in to publisher management, choose **RichasyZhang**, select **New extension → Visual Studio Code**, upload the VSIX, submit and wait for validation. Check the public listing/screenshots and installation. Confirm success before making the GitHub repository public. The browser-upload flow does not require storing a PAT in the project.
+English: sign in to publisher management, choose **RichasyZhang**, select **Update** on the existing extension, upload the VSIX, submit and wait for validation. Check the public listing/screenshots and installation. The GitHub repository is public. The browser-upload flow does not require storing a PAT in the project.
 
-## 私有仓库期间的截图 / Screenshots before open source
+## README 与截图 / README and screenshots
 
-仓库 README 使用相对 PNG 路径。发布脚本先调用官方 vsce，再将截图注册为可寻址 VSIX 资源，仅改写包内 README 图片地址为版本化 Marketplace gallery URL，避免私有 GitHub 图片失效。生成的 release manifest 列出所有 URL 和包内路径。实际图片托管只能在上传发布后验证。
+仓库使用 README.md（英文）与 README.zh-CN.md（中文），互相提供语言切换链接。VSIX 只包含英文 README，中文链接打开公开仓库文件。
 
-The repository README keeps relative PNGs. The package script calls official vsce, registers the PNGs as addressable VSIX assets, and rewrites only the packaged README to versioned gallery URLs. This avoids requiring a public GitHub repository before uploading. The release manifest lists all image URLs and paths; live hosting can only be checked after publication. Use **npm run package** for the final upload file; bare vsce package omits this finalization step.
+使用官方 vsce 将图片相对路径转换为公开 GitHub raw HTTPS 地址，不再依赖自定义 Marketplace 图库资源。发布清单列出四张截图的地址；打包后检查所有地址返回 HTTP 200 和 PNG 内容。
+
+The repository has separate English and Chinese READMEs. Only the English README is included in the VSIX; its language link opens the public Chinese document. Official vsce rewrites screenshots to public GitHub raw URLs. The release manifest lists the URLs, checked for HTTP 200 and PNG content.
 
 ## 重建与本地版本重置 / Rebuild and local reset
 
@@ -38,7 +40,7 @@ The repository README keeps relative PNGs. The package script calls official vsc
 npm ci
 npm run package
 code --uninstall-extension RichasyZhang.rodel-resource-editor
-code --install-extension .\artifacts\rodel-resource-editor-0.0.1.vsix --force
+code --install-extension .\artifacts\rodel-resource-editor-0.0.2.vsix --force
 code --list-extensions --show-versions
 ```
 

@@ -26,3 +26,5 @@ artifacts/*
 !artifacts/release-manifest.json
 
 !artifacts/rodel-resource-editor-0.0.1.vsix
+
+!artifacts/rodel-resource-editor-0.0.2.vsix

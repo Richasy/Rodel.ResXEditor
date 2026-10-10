@@ -134,3 +134,8 @@
 - 图标根据反馈改为资源矩阵：Key 轨道与两列语言值突出资源编辑、多语言并排管理；真实透明背景与紧凑裁切，更新 0.0.1 VSIX。
 
 - Marketplace 首次验证期间误移除导致旧名称保留，改用 Rodel Resource Editor / RichasyZhang.rodel-resource-editor，版本保持 0.0.1；仓库名称与内部文档/生成器标识保持兼容。
+
+## 0.0.2 文档与公开仓库
+
+- 英文 README.md 与中文 README.zh-CN.md 分离；VSIX 仅保留英文 README。
+- 移除自定义 Marketplace 图库资源链接，使用官方 vsce 转换为公开仓库 HTTPS 图片地址。用户授权开源，GitHub 仓库改为 public。

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.2
+
+- Split English and Chinese repository READMEs; include only English in the VSIX.
+- Fix README screenshot links using public repository URLs and official vsce packaging.
+
 ## 0.0.1
 
 Initial Marketplace release candidate. Version reset from local development builds; publisher ID is `RichasyZhang` and extension ID is `RichasyZhang.rodel-resource-editor`.

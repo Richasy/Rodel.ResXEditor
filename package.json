@@ -2,7 +2,7 @@
   "name": "rodel-resource-editor",
   "displayName": "Rodel Resource Editor",
   "description": "Native-feeling resource editing and multilingual management for .resw and .resx.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "RichasyZhang",
   "license": "MIT",
   "repository": {

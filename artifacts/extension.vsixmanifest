@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 	<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
 		<Metadata>
-			<Identity Language="en-US" Id="rodel-resource-editor" Version="0.0.1" Publisher="RichasyZhang" />
+			<Identity Language="en-US" Id="rodel-resource-editor" Version="0.0.2" Publisher="RichasyZhang" />
 			<DisplayName>Rodel Resource Editor</DisplayName>
 			<Description xml:space="preserve">Native-feeling resource editing and multilingual management for .resw and .resx.</Description>
 			<Tags>resw,resx,resources,localization,i18n,copilot,xml,excel</Tags>
@@ -44,9 +44,5 @@
 <Asset Type="Microsoft.VisualStudio.Services.Content.Changelog" Path="extension/changelog.md" Addressable="true" />
 <Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true" />
 <Asset Type="Microsoft.VisualStudio.Services.Icons.Default" Path="extension/assets/icon.png" Addressable="true" />
-		<Asset Type="Rodel.ResXEditor.Images.editor-dark" Path="extension/docs/images/editor-dark.png" Addressable="true" />
-<Asset Type="Rodel.ResXEditor.Images.language-filter" Path="extension/docs/images/language-filter.png" Addressable="true" />
-<Asset Type="Rodel.ResXEditor.Images.translation-preview" Path="extension/docs/images/translation-preview.png" Addressable="true" />
-<Asset Type="Rodel.ResXEditor.Images.editor-light" Path="extension/docs/images/editor-light.png" Addressable="true" />
-</Assets>
+		</Assets>
 	</PackageManifest>

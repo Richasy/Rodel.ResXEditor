@@ -4,10 +4,10 @@
 
 ## 安装与打开
 
-需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resource-editor-0.0.1.vsix`，或：
+需要 VS Code 1.95 或更新版本。使用 **Extensions → … → Install from VSIX** 安装 `artifacts/rodel-resource-editor-0.0.2.vsix`，或：
 
 ```powershell
-code --install-extension .\artifacts\rodel-resource-editor-0.0.1.vsix --force
+code --install-extension .\artifacts\rodel-resource-editor-0.0.2.vsix --force
 ```
 
 资源文件右键 **Open Resource Editor**，或命令面板 **Rodel: Open Resource Editor**。也可以使用 **Reopen Editor With → Rodel Resource Editor**。扩展默认采用可选编辑器注册，避免抢占 XML / Git 比较；需要自动打开表格时，可在 VS Code 中选择此编辑器为默认。
