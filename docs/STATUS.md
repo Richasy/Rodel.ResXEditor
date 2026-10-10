@@ -126,3 +126,5 @@
 - 中英双语 README、更新日志、使用/发布文档和四张实际 Webview 截图。Azure gpt-image-2.5-flare 生成 Fluent 风格图标，导出 256px PNG 用于扩展清单。
 - 官方 vsce 生成标准清单后，将截图注册为可寻址 VSIX 资源；私有仓库也可先上传市场，实际图库 URL 待上传后验证。输出 VSIX、清单与 SHA-256 发布描述。
 - 保持 GitHub 私有，等待用户确认市场上传成功后再开源。
+
+- 发布者 ID 因冲突调整为 RichasyZhang，显示名仍为云之幻；版本仍为 0.0.1。清单、图库 URL、安装/测试标识及发布文档同步更新，GitHub 仓库账号 Richasy 保持不变。

@@ -6,7 +6,7 @@
 
 A visual `.resw` / `.resx` editor for Visual Studio Code. Edit resource tables, manage translations side by side, and review Copilot suggestions without leaving your editor.
 
-Version **0.0.1** · VS Code **1.95+** · Publisher **云之幻 (Richasy)**
+Version **0.0.1** · VS Code **1.95+** · Publisher **云之幻 (RichasyZhang)**
 
 ### Resource editing
 
@@ -62,7 +62,7 @@ Independent examples live in `samples/Strings`, `samples/LongText/Strings` and `
 
 融入 VS Code 的 `.resw` / `.resx` 可视化资源编辑器。在表格中编辑资源、多语言并排管理，并直接预览和修改 Copilot 的翻译建议。
 
-版本 **0.0.1** · VS Code **1.95+** · 发布者 **云之幻（Richasy）**
+版本 **0.0.1** · VS Code **1.95+** · 发布者 **云之幻（RichasyZhang）**
 
 ### 资源编辑
 

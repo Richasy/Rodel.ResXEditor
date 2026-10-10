@@ -33,6 +33,7 @@ for (const image of images) {
 vsix = vsix.replace('</Assets>', assets.map(asset => `<Asset Type="${asset.type}" Path="${asset.path}" Addressable="true" />`).join('\n') + '\n</Assets>');
 new SaxesParser().write(vsix).close();
 assert.ok(vsix.includes(`Version="${manifest.version}"`));
+assert.ok(vsix.includes(`Publisher="${manifest.publisher}"`));
 assert.ok(vsix.includes('Microsoft.VisualStudio.Code'));
 assert.ok(zip.file(`extension/${manifest.icon}`));
 assert.equal(images.length, 4, 'All four release screenshots must be referenced and packaged.');

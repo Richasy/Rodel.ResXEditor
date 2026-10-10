@@ -1,31 +1,31 @@
 {
-  "publisher": "Richasy",
+  "publisher": "RichasyZhang",
   "name": "rodel-resxeditor",
   "version": "0.0.1",
   "vscode": "^1.95.0",
   "file": "artifacts/rodel-resxeditor-0.0.1.vsix",
-  "bytes": 1421247,
-  "sha256": "2369cf9073f74795f56ebefc7f61a9e7098696bc6ee5b329d6f16749961e2ff8",
+  "bytes": 1421286,
+  "sha256": "a193ed0ea95d0e2a766600a9eca8853be9c563a864125fbad3810c0501a8bf65",
   "screenshots": [
     {
       "type": "Rodel.ResXEditor.Images.editor-dark",
       "path": "extension/docs/images/editor-dark.png",
-      "url": "https://richasy.gallery.vsassets.io/_apis/public/gallery/publisher/Richasy/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.editor-dark"
+      "url": "https://richasyzhang.gallery.vsassets.io/_apis/public/gallery/publisher/RichasyZhang/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.editor-dark"
     },
     {
       "type": "Rodel.ResXEditor.Images.language-filter",
       "path": "extension/docs/images/language-filter.png",
-      "url": "https://richasy.gallery.vsassets.io/_apis/public/gallery/publisher/Richasy/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.language-filter"
+      "url": "https://richasyzhang.gallery.vsassets.io/_apis/public/gallery/publisher/RichasyZhang/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.language-filter"
     },
     {
       "type": "Rodel.ResXEditor.Images.translation-preview",
       "path": "extension/docs/images/translation-preview.png",
-      "url": "https://richasy.gallery.vsassets.io/_apis/public/gallery/publisher/Richasy/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.translation-preview"
+      "url": "https://richasyzhang.gallery.vsassets.io/_apis/public/gallery/publisher/RichasyZhang/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.translation-preview"
     },
     {
       "type": "Rodel.ResXEditor.Images.editor-light",
       "path": "extension/docs/images/editor-light.png",
-      "url": "https://richasy.gallery.vsassets.io/_apis/public/gallery/publisher/Richasy/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.editor-light"
+      "url": "https://richasyzhang.gallery.vsassets.io/_apis/public/gallery/publisher/RichasyZhang/extension/rodel-resxeditor/0.0.1/asset/Rodel.ResXEditor.Images.editor-light"
     }
   ]
 }

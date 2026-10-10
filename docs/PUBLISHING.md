@@ -2,28 +2,28 @@
 
 ## 发布信息 / Identity
 
-- Publisher ID: **Richasy**.
+- Publisher ID: **RichasyZhang**.
 - Publisher Name: **云之幻**.
-- Extension ID: **Richasy.rodel-resxeditor**.
+- Extension ID: **RichasyZhang.rodel-resxeditor**.
 - Version: **0.0.1**.
 - Upload: **artifacts/rodel-resxeditor-0.0.1.vsix**.
 - Extension metadata: `package.json`.
 - Generated VSIX manifest: `artifacts/extension.vsixmanifest`，已包含在 VSIX 内，不必单独上传。
 - Release checksum and screenshot URLs: `artifacts/release-manifest.json`.
 
-Microsoft 登录账号的邮箱与显示名不是 Publisher ID。创建发布者时 **ID = Richasy，Name = 云之幻**。ID 必须与 package.json 的 publisher 一致；若不可用，修改 publisher 后重新运行 npm run package。
+Microsoft 登录账号的邮箱与显示名不是 Publisher ID。创建发布者时 **ID = RichasyZhang，Name = 云之幻**。ID 必须与 package.json 的 publisher 一致；若不可用，修改 publisher 后重新运行 npm run package。
 
-The Microsoft login email/display name is not the publisher ID. Create/select **ID Richasy**, **Name 云之幻**. If the ID is unavailable, update package.json and rebuild before uploading.
+The Microsoft login email/display name is not the publisher ID. Create/select **ID RichasyZhang**, **Name 云之幻**. If the ID is unavailable, update package.json and rebuild before uploading.
 
 ## 手动上传 / Manual upload
 
 1. 打开 [发布者管理页](https://marketplace.visualstudio.com/manage)，用你的 Microsoft 账号登录，创建或选择上述 Publisher。
 2. 点击 **New extension → Visual Studio Code**，上传 `artifacts/rodel-resxeditor-0.0.1.vsix`。
 3. 完成表单并提交，等待验证和发布成功；若有错误，先根据页面提示修复。浏览器上传不需要把 PAT 提供给助手或写入仓库。
-4. 打开公开页面，检查图标、中英介绍和四张截图，再在干净的 VS Code 配置中安装。预期链接：`https://marketplace.visualstudio.com/items?itemName=Richasy.rodel-resxeditor`。
+4. 打开公开页面，检查图标、中英介绍和四张截图，再在干净的 VS Code 配置中安装。预期链接：`https://marketplace.visualstudio.com/items?itemName=RichasyZhang.rodel-resxeditor`。
 5. 向助手确认成功后，再将 GitHub 仓库开源。当前保持私有，没有自动发布/开源。
 
-English: sign in to publisher management, choose **Richasy**, select **New extension → Visual Studio Code**, upload the VSIX, submit and wait for validation. Check the public listing/screenshots and installation. Confirm success before making the GitHub repository public. The browser-upload flow does not require storing a PAT in the project.
+English: sign in to publisher management, choose **RichasyZhang**, select **New extension → Visual Studio Code**, upload the VSIX, submit and wait for validation. Check the public listing/screenshots and installation. Confirm success before making the GitHub repository public. The browser-upload flow does not require storing a PAT in the project.
 
 ## 私有仓库期间的截图 / Screenshots before open source
 
@@ -36,7 +36,7 @@ The repository README keeps relative PNGs. The package script calls official vsc
 ```powershell
 npm ci
 npm run package
-code --uninstall-extension Richasy.rodel-resxeditor
+code --uninstall-extension RichasyZhang.rodel-resxeditor
 code --install-extension .\artifacts\rodel-resxeditor-0.0.1.vsix --force
 code --list-extensions --show-versions
 ```
