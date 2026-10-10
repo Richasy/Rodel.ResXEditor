@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "vscode": "^1.95.0",
   "file": "artifacts/rodel-resxeditor-0.0.1.vsix",
-  "bytes": 1421289,
-  "sha256": "227ae81f52365675a25887050ae3b4aecf4009512d600c7358b989f73d5fc3a5",
+  "bytes": 1440069,
+  "sha256": "598014d05f9d102fb14b51298301f4485a7ed90634e11cbb3d12e29961b767fb",
   "screenshots": [
     {
       "type": "Rodel.ResXEditor.Images.editor-dark",

@@ -20,3 +20,5 @@ dist/*.map
 !docs/USAGE.zh-CN.md
 !docs/PUBLISHING.md
 assets/icon-original.png
+assets/icon-multilingual-original.png
+assets/icon-multilingual-clean-original.png
